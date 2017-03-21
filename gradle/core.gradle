@@ -1,3 +1,6 @@
+// Generic helper .gradle file copied between projects
+// - Probably easier way to do this, maybe a Gradle plugin, but still learning Gradle.
+
 tasks.withType(JavaCompile) {
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
@@ -56,15 +59,6 @@ configurations {
     all*.exclude group: 'commons-logging'
 }
 
-configurations.all {
-    resolutionStrategy {
-        // rest-assured uses 2.4.6 but spring-boot uses 2.4.7 which causes conflict in Eclipse
-        force 'org.codehaus.groovy:groovy:2.4.7'
-        force 'org.codehaus.groovy:groovy-json:2.4.7'
-        force 'org.codehaus.groovy:groovy-xml:2.4.7'
-    }
-}
-
 sourceSets {
     main.compileClasspath += configurations.provided
     test.compileClasspath += configurations.provided
@@ -85,6 +79,9 @@ test {
     }
 }
 
+// Custom Eclipse .classpath generation to use project references instead of .jar references; this
+// allows us to do refactoring in Eclipse across projects
+//
 // see: https://docs.gradle.org/current/dsl/org.gradle.plugins.ide.eclipse.model.EclipseClasspath.html
 eclipse {
     classpath {
@@ -183,6 +180,9 @@ task wrapper(type: Wrapper) {
     gradleVersion = '3.2.1'
 }
 
+// This code allows us to define aliases, such as "all", so that when we do "gradle all", 
+// we can substitute in a series of other gradle tasks
+//
 // see: https://caffeineinduced.wordpress.com/2015/01/25/run-a-list-of-gradle-tasks-in-specific-order/
 def expandedTaskList = []
 
