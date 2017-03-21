@@ -2,7 +2,7 @@
 
 buildscript {
     repositories {
-		jcenter()
+		mavenCentral()
     }
 }
 
@@ -14,7 +14,7 @@ plugins {
 	id 'com.github.ben-manes.versions' version '0.14.0'
 	id 'org.inferred.processors' version '1.2.3'
 	id "net.ltgt.errorprone" version "0.0.9"
-	id "com.jfrog.bintray" version "1.7.3"
+	id "io.codearte.nexus-staging" version "0.6.1"
 }
 
 version = '1.0.0'
