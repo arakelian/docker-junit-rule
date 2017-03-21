@@ -4,7 +4,7 @@ A junit rule to run docker containers.
 
 ## Installation
 
-The library is available on jcenter
+The library is available on Maven Central
 
 ### Maven
 
@@ -13,12 +13,12 @@ Add the following to your `pom.xml`:
 ```xml
 <repositories>
     <repository>
-        <snapshots>
-            <enabled>false</enabled>
-        </snapshots>
         <id>central</id>
-        <name>bintray</name>
-        <url>http://jcenter.bintray.com</url>
+        <name>Central Repository</name>
+        <url>http://repo.maven.apache.org/maven2</url>
+        <releases>
+            <enabled>true</enabled>
+        </releases>
     </repository>
 </repositories>
 
@@ -27,7 +27,7 @@ Add the following to your `pom.xml`:
 <dependency>
     <groupId>com.arakelian</groupId>
     <artifactId>arakelian-docker-junit</artifactId>
-    <version>1.1.0</version>
+    <version>1.0.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -38,11 +38,11 @@ Add the following to your `build.gradle`:
 
 ```groovy
 repositories {
-  jcenter()
+  mavenCentral()
 }
 
 dependencies {
-  testCompile 'com.arakelian:arakelian-docker-junit:1.1.0'
+  testCompile 'com.arakelian:arakelian-docker-junit:1.0.0'
 }
 ```
 
