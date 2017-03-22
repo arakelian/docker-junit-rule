@@ -40,7 +40,7 @@ import com.spotify.docker.client.messages.PortBinding;
  * Uses spotify/docker-client. Adapted from https://github.com/geowarin/docker-junit-rule
  * </p>
  * 
- * @auth Greg Arakelian
+ * @author Greg Arakelian
  */
 public abstract class DockerRule implements TestRule, ContainerListener {
 	private static final Logger LOGGER = LoggerFactory.getLogger(DockerRule.class);

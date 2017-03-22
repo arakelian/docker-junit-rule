@@ -389,17 +389,16 @@ public class Container {
 	/**
 	 * Wait for nth occurrence of message to appear in docker logs within the specified timeframe.
 	 *
-	 * @param message
-	 *            The log message to wait. This will stop blocking as soon as the docker logs
-	 *            contains that string
-	 * @param nthOccurence
-	 *            which occurrence to wait for, 1-based
 	 * @param timeout
 	 *            timeout value
 	 * @param unit
 	 *            timeout units
+	 * @param messages
+	 *            The sequence of messages to wait for
 	 * @throws DockerException
+	 *             if docker throws exception while tailing logs
 	 * @throws InterruptedException
+	 *             if thread interrupted while waiting for timeout
 	 */
 	public final void waitForLog(final int timeout, final TimeUnit unit, final String... messages)
 			throws DockerException, InterruptedException {
@@ -430,13 +429,14 @@ public class Container {
 	}
 
 	/**
-	 * Wait for first occurrence of message to appear in docker logs.
+	 * Wait for a sequence of messages to appear in docker logs.
 	 *
 	 * @param messages
-	 *            The log message to wait. This will stop blocking as soon as the docker logs
-	 *            contains that string
+	 *            The sequence of messages to wait for
 	 * @throws DockerException
+	 *             if docker throws exception while tailing logs
 	 * @throws InterruptedException
+	 *             if thread interrupted while waiting for timeout
 	 */
 	public final void waitForLog(final String... messages) throws DockerException, InterruptedException {
 		waitForLog(30, TimeUnit.SECONDS, messages);
