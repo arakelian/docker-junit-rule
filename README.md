@@ -26,8 +26,8 @@ Add the following to your `pom.xml`:
 
 <dependency>
     <groupId>com.arakelian</groupId>
-    <artifactId>arakelian-docker-junit</artifactId>
-    <version>1.0.1</version>
+    <artifactId>docker-junit-rule</artifactId>
+    <version>1.1.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -42,7 +42,7 @@ repositories {
 }
 
 dependencies {
-  testCompile 'com.arakelian:arakelian-docker-junit:1.0.1'
+  testCompile 'com.arakelian:docker-junit-rule:1.1.0'
 }
 ```
 

@@ -1,4 +1,4 @@
-// arakelian-docker-junit
+// docker-junit-rule
 
 buildscript {
     repositories {
@@ -18,7 +18,7 @@ plugins {
 	id "io.codearte.nexus-staging" version "0.6.1"
 }
 
-version = '1.0.1'
+version = '1.1.0'
 group   = 'com.arakelian'
 
 // common gradle code shared between projects
@@ -29,11 +29,11 @@ uploadArchives {
     repositories {
         mavenDeployer {
             pom.project {
-                url 'https://github.com/garakelian/docker-junit'
+                url 'https://github.com/garakelian/docker-junit-rule'
                 scm {
-                    connection 'scm:git:https://github.com/garakelian/docker-junit.git'
-                    developerConnection 'scm:git:git@github.com:garakelian/docker-junit.git'
-                    url 'https://github.com/garakelian/docker-junit.git'
+                    connection 'scm:git:https://github.com/garakelian/docker-junit-rule.git'
+                    developerConnection 'scm:git:git@github.com:garakelian/docker-junit-rule.git'
+                    url 'https://github.com/garakelian/docker-junit-rule.git'
                 }
             }
         }

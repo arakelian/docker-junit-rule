@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>arakelian-docker-junit</name>
+	<name>docker-junit-rule</name>
 	<comment>Arakelian Software Jar</comment>
 	<projects>
 	</projects>
