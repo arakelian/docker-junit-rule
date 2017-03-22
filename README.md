@@ -1,4 +1,4 @@
-# docker-junit
+# docker-junit-rule
 
 A junit rule to run docker containers.
 
