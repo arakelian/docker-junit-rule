@@ -2,13 +2,14 @@
 
 buildscript {
     repositories {
-		mavenCentral()
+		jcenter()
     }
 }
 
 plugins {
 	id 'java'
 	id 'maven'
+	id 'signing'
 	id 'eclipse'
 	id 'idea'
 	id 'com.github.ben-manes.versions' version '0.14.0'
@@ -17,11 +18,27 @@ plugins {
 	id "io.codearte.nexus-staging" version "0.6.1"
 }
 
-version = '1.0.0'
+version = '1.0.1'
 group   = 'com.arakelian'
 
 // common gradle code shared between projects
 apply from: "gradle/core.gradle"
+
+// project-specific Maven Central properties are here; see core.gradle for common properties
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            pom.project {
+                url 'https://github.com/garakelian/docker-junit'
+                scm {
+                    connection 'scm:git:https://github.com/garakelian/docker-junit.git'
+                    developerConnection 'scm:git:git@github.com:garakelian/docker-junit.git'
+                    url 'https://github.com/garakelian/docker-junit.git'
+                }
+            }
+        }
+    }
+}
 
 dependencies {
 	processor 'org.immutables:value:2.4.4'
