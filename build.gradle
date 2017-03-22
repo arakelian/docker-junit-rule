@@ -18,7 +18,7 @@ plugins {
 	id "io.codearte.nexus-staging" version "0.6.1"
 }
 
-version = '1.1.0'
+version = '1.1.1'
 group   = 'com.arakelian'
 
 // common gradle code shared between projects
@@ -29,11 +29,11 @@ uploadArchives {
     repositories {
         mavenDeployer {
             pom.project {
-                url 'https://github.com/garakelian/docker-junit-rule'
+                url 'https://github.com/arakelian/docker-junit-rule'
                 scm {
-                    connection 'scm:git:https://github.com/garakelian/docker-junit-rule.git'
-                    developerConnection 'scm:git:git@github.com:garakelian/docker-junit-rule.git'
-                    url 'https://github.com/garakelian/docker-junit-rule.git'
+                    connection 'scm:git:https://github.com/arakelian/docker-junit-rule.git'
+                    developerConnection 'scm:git:git@github.com:arakelian/docker-junit-rule.git'
+                    url 'https://github.com/arakelian/docker-junit-rule.git'
                 }
             }
         }

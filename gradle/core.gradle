@@ -218,7 +218,7 @@ uploadArchives {
 
                 developers {
                     developer {
-                        id = 'garakelian'
+                        id = 'arakelian'
                         name = 'Greg Arakelian'
                         email = 'greg@arakelian.com'
                     }
