@@ -33,30 +33,30 @@ import com.rabbitmq.client.ConnectionFactory;
 
 /**
  * Tests that we can launch RabbitMQ inside Docker container as part of JUnit test.
- * 
+ *
  * @author Greg Arakelian
  */
 public class RabbitIntegrationTest {
-	@ClassRule
-	public static RabbitDockerRule rabbitmq = new RabbitDockerRule();
+    @ClassRule
+    public static RabbitDockerRule rabbitmq = new RabbitDockerRule();
 
-	@Test
-	public void testConnectsToDocker() throws ExecutionException, RetryException {
-		final Retryer<Void> retryer = RetryerBuilder.<Void> newBuilder() //
-				.retryIfException() //
-				.withStopStrategy(StopStrategies.stopAfterDelay(1, TimeUnit.MINUTES)) //
-				.withWaitStrategy(WaitStrategies.fixedWait(5, TimeUnit.SECONDS)) //
-				.build();
+    @Test
+    public void testConnectsToDocker() throws ExecutionException, RetryException {
+        final Retryer<Void> retryer = RetryerBuilder.<Void> newBuilder() //
+                .retryIfException() //
+                .withStopStrategy(StopStrategies.stopAfterDelay(1, TimeUnit.MINUTES)) //
+                .withWaitStrategy(WaitStrategies.fixedWait(5, TimeUnit.SECONDS)) //
+                .build();
 
-		// wait for elastic
-		retryer.call(() -> {
-			final ConnectionFactory factory = new ConnectionFactory();
-			final Container container = rabbitmq.getContainer();
-			factory.setHost(container.getHost());
-			factory.setPort(container.getPort("5672/tcp"));
-			final Connection connection = factory.newConnection();
-			connection.close();
-			return null;
-		});
-	}
+        // wait for elastic
+        retryer.call(() -> {
+            final ConnectionFactory factory = new ConnectionFactory();
+            final Container container = rabbitmq.getContainer();
+            factory.setHost(container.getHost());
+            factory.setPort(container.getPort("5672/tcp"));
+            final Connection connection = factory.newConnection();
+            connection.close();
+            return null;
+        });
+    }
 }

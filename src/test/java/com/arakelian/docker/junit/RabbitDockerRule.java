@@ -24,30 +24,30 @@ import com.arakelian.docker.junit.ImmutableDockerConfig;
 
 /**
  * Test rule that starts Rabbit MQ.
- * 
+ *
  * @author Greg Arakelian
  */
 public class RabbitDockerRule extends DockerRule {
-	public RabbitDockerRule() {
-		super(ImmutableDockerConfig.builder() //
-				.name("docker-test") //
-				.image("rabbitmq:management") //
-				.ports("5672") //
-				.build());
-	}
+    public RabbitDockerRule() {
+        super(ImmutableDockerConfig.builder() //
+                .name("docker-test") //
+                .image("rabbitmq:management") //
+                .ports("5672") //
+                .build());
+    }
 
-	@Override
-	protected void configureContainer(final Builder builder) {
-	}
+    @Override
+    protected void configureContainer(final Builder builder) {
+    }
 
-	@Override
-	protected void configureHost(final com.spotify.docker.client.messages.HostConfig.Builder builder) {
-	}
+    @Override
+    protected void configureHost(final com.spotify.docker.client.messages.HostConfig.Builder builder) {
+    }
 
-	@Override
-	public void onStarted(final Container container) throws Exception {
-		final int port = container.getPort("5672/tcp");
-		container.waitForPort(port);
-		container.waitForLog("Server startup complete");
-	}
+    @Override
+    public void onStarted(final Container container) throws Exception {
+        final int port = container.getPort("5672/tcp");
+        container.waitForPort(port);
+        container.waitForLog("Server startup complete");
+    }
 }

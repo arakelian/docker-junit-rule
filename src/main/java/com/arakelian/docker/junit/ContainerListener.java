@@ -17,5 +17,5 @@
 package com.arakelian.docker.junit;
 
 public interface ContainerListener {
-	public void onStarted(Container container) throws Exception;
+    public void onStarted(Container container) throws Exception;
 }

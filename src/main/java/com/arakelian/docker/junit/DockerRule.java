@@ -39,86 +39,86 @@ import com.spotify.docker.client.messages.PortBinding;
  * <p>
  * Uses spotify/docker-client. Adapted from https://github.com/geowarin/docker-junit-rule
  * </p>
- * 
+ *
  * @author Greg Arakelian
  */
 public abstract class DockerRule implements TestRule, ContainerListener {
-	private static final Logger LOGGER = LoggerFactory.getLogger(DockerRule.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DockerRule.class);
 
-	/** Cache of docker contexts **/
-	private static final Map<String, Container> CONTAINER_CACHE = new ConcurrentHashMap<>();
+    /** Cache of docker contexts **/
+    private static final Map<String, Container> CONTAINER_CACHE = new ConcurrentHashMap<>();
 
-	/** Docker rule configuration **/
-	final DockerConfig config;
+    /** Docker rule configuration **/
+    final DockerConfig config;
 
-	/** Docker container **/
-	private Container container;
+    /** Docker container **/
+    private Container container;
 
-	public DockerRule(final DockerConfig config) {
-		this.config = config;
-	}
+    public DockerRule(final DockerConfig config) {
+        this.config = config;
+    }
 
-	@Override
-	public final Statement apply(final Statement base, final Description description) {
-		// share or create container context
-		synchronized (CONTAINER_CACHE) {
-			final String name = config.getName();
-			Container container = CONTAINER_CACHE.get(name);
-			if (container == null) {
-				container = createContainer();
-				CONTAINER_CACHE.put(name, container);
-			}
-			this.container = container;
-		}
+    @Override
+    public final Statement apply(final Statement base, final Description description) {
+        // share or create container context
+        synchronized (CONTAINER_CACHE) {
+            final String name = config.getName();
+            Container container = CONTAINER_CACHE.get(name);
+            if (container == null) {
+                container = createContainer();
+                CONTAINER_CACHE.put(name, container);
+            }
+            this.container = container;
+        }
 
-		try {
-			container.start();
-		} catch (final Exception e) {
-			container.stop();
-			throw new RuntimeException("Unable to start docker container", e);
-		}
+        try {
+            container.start();
+        } catch (final Exception e) {
+            container.stop();
+            throw new RuntimeException("Unable to start docker container", e);
+        }
 
-		LOGGER.debug("Applying {} to test class [{}]", this.getClass().getSimpleName(),
-				description.getTestClass().getName());
-		return base;
-	}
+        LOGGER.debug("Applying {} to test class [{}]", this.getClass().getSimpleName(),
+                description.getTestClass().getName());
+        return base;
+    }
 
-	protected abstract void configureContainer(final ContainerConfig.Builder builder);
+    protected abstract void configureContainer(final ContainerConfig.Builder builder);
 
-	protected abstract void configureHost(final HostConfig.Builder builder);
+    protected abstract void configureHost(final HostConfig.Builder builder);
 
-	protected Container createContainer() {
-		// host configuration
-		final HostConfig.Builder hostConfigBuilder = HostConfig.builder() //
-				.portBindings(createPortBindings(config.getPorts()));
-		configureHost(hostConfigBuilder);
-		final HostConfig hostConfig = hostConfigBuilder.build();
+    protected Container createContainer() {
+        // host configuration
+        final HostConfig.Builder hostConfigBuilder = HostConfig.builder() //
+                .portBindings(createPortBindings(config.getPorts()));
+        configureHost(hostConfigBuilder);
+        final HostConfig hostConfig = hostConfigBuilder.build();
 
-		// container configuration
-		final ContainerConfig.Builder configBuilder = ContainerConfig.builder() //
-				.hostConfig(hostConfig) //
-				.image(config.getImage()) //
-				.networkDisabled(false) //
-				.exposedPorts(config.getPorts());
-		configureContainer(configBuilder);
-		final ContainerConfig containerConfig = configBuilder.build();
+        // container configuration
+        final ContainerConfig.Builder configBuilder = ContainerConfig.builder() //
+                .hostConfig(hostConfig) //
+                .image(config.getImage()) //
+                .networkDisabled(false) //
+                .exposedPorts(config.getPorts());
+        configureContainer(configBuilder);
+        final ContainerConfig containerConfig = configBuilder.build();
 
-		return new Container(config.getName(), containerConfig, config.isAlwaysRemoveContainer(), this);
-	}
+        return new Container(config.getName(), containerConfig, config.isAlwaysRemoveContainer(), this);
+    }
 
-	private Map<String, List<PortBinding>> createPortBindings(final String[] exposedPorts) {
-		final Map<String, List<PortBinding>> portBindings = new HashMap<>();
-		if (exposedPorts != null) {
-			for (final String port : exposedPorts) {
-				final List<PortBinding> hostPorts = Collections
-						.singletonList(PortBinding.randomPort("0.0.0.0"));
-				portBindings.put(port, hostPorts);
-			}
-		}
-		return portBindings;
-	}
+    private Map<String, List<PortBinding>> createPortBindings(final String[] exposedPorts) {
+        final Map<String, List<PortBinding>> portBindings = new HashMap<>();
+        if (exposedPorts != null) {
+            for (final String port : exposedPorts) {
+                final List<PortBinding> hostPorts = Collections
+                        .singletonList(PortBinding.randomPort("0.0.0.0"));
+                portBindings.put(port, hostPorts);
+            }
+        }
+        return portBindings;
+    }
 
-	public final Container getContainer() {
-		return container;
-	}
+    public final Container getContainer() {
+        return container;
+    }
 }

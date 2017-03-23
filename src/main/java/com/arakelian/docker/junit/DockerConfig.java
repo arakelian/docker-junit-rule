@@ -20,23 +20,23 @@ import org.immutables.value.Value;
 
 /**
  * Docker configuration.
- * 
+ *
  * We use <a href="immutables.github.io">Immutables</a> to generate immutable Java beans, via Java
  * Annotation Processing.
- * 
+ *
  * @author Greg Arakelian
  */
 @Value.Immutable(copy = false)
 @Value.Style(get = { "is*", "get*" })
 public interface DockerConfig {
-	public String getImage();
+    public String getImage();
 
-	public String getName();
+    public String getName();
 
-	public String[] getPorts();
+    public String[] getPorts();
 
-	@Value.Default
-	public default boolean isAlwaysRemoveContainer() {
-		return false;
-	}
+    @Value.Default
+    public default boolean isAlwaysRemoveContainer() {
+        return false;
+    }
 }
