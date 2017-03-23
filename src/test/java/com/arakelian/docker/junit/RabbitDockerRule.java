@@ -16,11 +16,7 @@
 
 package com.arakelian.docker.junit;
 
-import com.arakelian.docker.junit.Container;
-import com.arakelian.docker.junit.DockerRule;
 import com.spotify.docker.client.messages.ContainerConfig.Builder;
-
-import com.arakelian.docker.junit.ImmutableDockerConfig;
 
 /**
  * Test rule that starts Rabbit MQ.
