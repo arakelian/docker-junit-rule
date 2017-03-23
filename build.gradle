@@ -26,7 +26,6 @@ plugins {
 	id "io.codearte.nexus-staging" version "0.6.1"
 }
 
-version = '1.1.1'
 group   = 'com.arakelian'
 
 // common gradle code shared between projects
