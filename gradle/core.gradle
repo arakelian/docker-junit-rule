@@ -187,45 +187,47 @@ task wrapper(type: Wrapper) {
     gradleVersion = '3.4.1'
 }
 
-signing {
-    sign configurations.archives
-}
-
-uploadArchives {
-    repositories {
-    	// see: http://central.sonatype.org/pages/gradle.html
-        mavenDeployer {
-            beforeDeployment { 
-            	MavenDeployment deployment -> signing.signPom(deployment) 
-            }
-            
-            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                authentication(userName: nexusUsername, password: nexusPassword)
-            }
-            
-            pom.project {
-                name project.name
-                packaging 'jar'
-                description project.description
-
-                licenses {
-                    license {
-                        name 'Apache License 2.0'
-                        url 'https://www.apache.org/licenses/LICENSE-2.0'
-                        distribution 'repo'
-                    }
-                }
-
-                developers {
-                    developer {
-                        id = 'arakelian'
-                        name = 'Greg Arakelian'
-                        email = 'greg@arakelian.com'
-                    }
-                }
-            }
-        }
-    }
+if (project.hasProperty('nexusUsername')) {
+	signing {
+	    sign configurations.archives
+	}
+	
+	uploadArchives {
+	    repositories {
+	    	// see: http://central.sonatype.org/pages/gradle.html
+	        mavenDeployer {
+	            beforeDeployment { 
+	            	MavenDeployment deployment -> signing.signPom(deployment) 
+	            }
+	            
+	            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+	                authentication(userName: nexusUsername, password: nexusPassword)
+	            }
+	            
+	            pom.project {
+	                name project.name
+	                packaging 'jar'
+	                description project.description
+	
+	                licenses {
+	                    license {
+	                        name 'Apache License 2.0'
+	                        url 'https://www.apache.org/licenses/LICENSE-2.0'
+	                        distribution 'repo'
+	                    }
+	                }
+	
+	                developers {
+	                    developer {
+	                        id = 'arakelian'
+	                        name = 'Greg Arakelian'
+	                        email = 'greg@arakelian.com'
+	                    }
+	                }
+	            }
+	        }
+	    }
+	}
 }
 
 

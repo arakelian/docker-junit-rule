@@ -12,9 +12,17 @@ plugins {
 	id 'signing'
 	id 'eclipse'
 	id 'idea'
+	
+	// keep dependencies up-to-date!
 	id 'com.github.ben-manes.versions' version '0.14.0'
+	
+	// useful for creating immutable java beans
 	id 'org.inferred.processors' version '1.2.3'
+	
+	// to ensure clean code
 	id "net.ltgt.errorprone" version "0.0.9"
+	
+	// for deployment to Maven Central
 	id "io.codearte.nexus-staging" version "0.6.1"
 }
 
@@ -24,20 +32,24 @@ group   = 'com.arakelian'
 // common gradle code shared between projects
 apply from: "gradle/core.gradle"
 
-// project-specific Maven Central properties are here; see core.gradle for common properties
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            pom.project {
-                url 'https://github.com/arakelian/docker-junit-rule'
-                scm {
-                    connection 'scm:git:https://github.com/arakelian/docker-junit-rule.git'
-                    developerConnection 'scm:git:git@github.com:arakelian/docker-junit-rule.git'
-                    url 'https://github.com/arakelian/docker-junit-rule.git'
-                }
-            }
-        }
-    }
+// only want to configure this if ~/.gradle/gradle.properties contains nexus username and password;
+// this snippet is used for deployment to Maven Central
+if (project.hasProperty('nexusUsername')) {
+	// project-specific properties configured here; see core.gradle for general configuration
+	uploadArchives {
+	    repositories {
+	        mavenDeployer {
+	            pom.project {
+	                url 'https://github.com/arakelian/docker-junit-rule'
+	                scm {
+	                    connection 'scm:git:https://github.com/arakelian/docker-junit-rule.git'
+	                    developerConnection 'scm:git:git@github.com:arakelian/docker-junit-rule.git'
+	                    url 'https://github.com/arakelian/docker-junit-rule.git'
+	                }
+	            }
+	        }
+	    }
+	}
 }
 
 dependencies {
