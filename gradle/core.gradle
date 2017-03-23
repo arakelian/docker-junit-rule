@@ -1,6 +1,10 @@
 // Generic helper .gradle file copied between projects
 // - Probably easier way to do this, maybe a Gradle plugin, but still learning Gradle.
 
+task wrapper(type: Wrapper) {
+    gradleVersion = '3.4.1'
+}
+
 tasks.withType(JavaCompile) {
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
@@ -50,7 +54,7 @@ artifacts {
 }
 
 repositories {
-    // prefer locally build artifacts
+    // prefer locally built artifacts
     mavenLocal()
 
     // external maven repo is next preference
@@ -183,10 +187,6 @@ task generateGitProperties {
 	}
 }
 
-task wrapper(type: Wrapper) {
-    gradleVersion = '3.4.1'
-}
-
 if (project.hasProperty('nexusUsername')) {
 	signing {
 	    sign configurations.archives
@@ -201,6 +201,10 @@ if (project.hasProperty('nexusUsername')) {
 	            }
 	            
 	            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+	                authentication(userName: nexusUsername, password: nexusPassword)
+	            }
+	            
+	            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
 	                authentication(userName: nexusUsername, password: nexusPassword)
 	            }
 	            
