@@ -55,7 +55,7 @@ dependencies {
     processor 'org.immutables:value:2.4.6'
 
     compile 'junit:junit:4.12'
-    compile 'com.spotify:docker-client:8.2.0'
+    compile 'com.spotify:docker-client:8.2.1'
 
     // need 2.22.2+ to fix bug which prevents jersey from exiting
     // see: https://github.com/spotify/docker-client/issues/405

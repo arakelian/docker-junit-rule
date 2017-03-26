@@ -32,16 +32,19 @@ ext {
     ]
 }
 
+// Maven Central requires Javadocs
 task javadocJar(type: Jar, dependsOn:classes) {
     classifier = 'javadoc'
     from javadoc
 }
 
+// always nice to have source code available in other projects
 task sourcesJar(type:Jar, dependsOn:classes) {
     classifier = 'sources'
     from sourceSets.main.allSource
 }
 
+// other projects may want to extend our unit tests
 task testJar(type:Jar, dependsOn:testClasses) {
     classifier = 'tests'
     from sourceSets.test.output
