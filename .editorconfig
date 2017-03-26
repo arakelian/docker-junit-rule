@@ -1,7 +1,7 @@
 # see: http://EditorConfig.org
 root = true
 
-[*.{java,css,js,json,ftl,txt,properties,xml}]
+[*.{gradle,java,css,js,json,ftl,txt,properties,xml}]
 end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true

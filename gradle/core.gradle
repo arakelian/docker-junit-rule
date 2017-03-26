@@ -13,23 +13,23 @@ tasks.withType(JavaCompile) {
     // have to declare parameter names with @JsonCreator
     options.compilerArgs << "-parameters"
 
-    // Eclipse code formatting removes extraneous parenthesis which errorprone complains about    
+    // Eclipse code formatting removes extraneous parenthesis which errorprone complains about
     if (project.plugins.hasPlugin('net.ltgt.errorprone')) {
-		options.compilerArgs << '-Xep:OperatorPrecedence:OFF'
+        options.compilerArgs << '-Xep:OperatorPrecedence:OFF'
     }
 }
 
 ext {
     // list of dependencies that we want to replace with Eclipse project refs;
-    // we automatically add all Gradle projects that are sibling directories to this project. 
+    // we automatically add all Gradle projects that are sibling directories to this project.
     // NOTE: dependencies list here that end with a hyphen match modules that starting with that prefix.
     use_eclipse_project_refs = []
-    
+
     // useful shortcuts
     buildAliases = [
    		'all' : ['clean', 'classpath', 'build', 'install'],
-   		'deploy' : ['upload', 'closeAndPromoteRepository']
-	]
+   		'deploy' : ['upload', 'closeRepository']
+    ]
 }
 
 task javadocJar(type: Jar, dependsOn:classes) {
@@ -38,19 +38,19 @@ task javadocJar(type: Jar, dependsOn:classes) {
 }
 
 task sourcesJar(type:Jar, dependsOn:classes) {
-	classifier = 'sources'
-	from sourceSets.main.allSource
+    classifier = 'sources'
+    from sourceSets.main.allSource
 }
 
 task testJar(type:Jar, dependsOn:testClasses) {
-	classifier = 'tests'
-	from sourceSets.test.output
+    classifier = 'tests'
+    from sourceSets.test.output
 }
 
 artifacts {
-	archives javadocJar
-	archives sourcesJar
-	archives testJar
+    archives javadocJar
+    archives sourcesJar
+    archives testJar
 }
 
 repositories {
@@ -114,22 +114,22 @@ eclipse {
             // closure executed after .classpath content is loaded from existing file
             // and after gradle build information is merged
             whenMerged { classpath ->
-            
+
                 // build list of dependencies that we want to replace with Eclipse project refs
-		    	println 'Finding local projects'
-			    def use_eclipse_project_refs = []
-				new File("${projectDir}/..").eachDir {
-				    if(new File("${it}/build.gradle").exists()) {
-				    	use_eclipse_project_refs += it.name
-				 	}
-				}
-            
-		    	println 'Generating Eclipse .classpath file'
-		    	def kindOrder = [ 'src':1, 'con':2, 'lib':3, 'output':0 ];
-                classpath.entries.sort(true, { a,b -> 
-                		def order = kindOrder[a.kind] <=> kindOrder[b.kind]
-                		order != 0 ? order : a.path <=> b.path
-                	} as Comparator).each { entry ->
+                println 'Finding local projects'
+                def use_eclipse_project_refs = []
+                new File("${projectDir}/..").eachDir {
+                    if(new File("${it}/build.gradle").exists()) {
+                        use_eclipse_project_refs += it.name
+                 	}
+                }
+
+                println 'Generating Eclipse .classpath file'
+                def kindOrder = [ 'src':1, 'con':2, 'lib':3, 'output':0 ];
+                classpath.entries.sort(true, { a,b ->
+                        def order = kindOrder[a.kind] <=> kindOrder[b.kind]
+                        order != 0 ? order : a.path <=> b.path
+                    } as Comparator).each { entry ->
                     if(entry.kind.equals('lib')) {
                         use_eclipse_project_refs.each { name ->
                             def regex = '/(' + ( name.endsWith('-') ?
@@ -166,76 +166,76 @@ task classpath(dependsOn: ['cleanEclipseClasspath', 'eclipseClasspath', 'eclipse
 }
 
 task generateGitProperties {
-	doLast {
-	    def branch = 'git rev-parse --abbrev-ref HEAD'.execute().text.trim()
-	    def revision = 'git rev-list --max-count 1 --timestamp --abbrev-commit HEAD'.execute().text.trim()
-	    def commitHash = revision.split(' ').last()
-	    def timestamp = revision ? new java.util.Date(java.util.concurrent.TimeUnit.SECONDS.toMillis(revision.split(' ').first() as long)).format("yyyy-MM-dd'T'HH:mm:ssZ") : null
+    doLast {
+        def branch = 'git rev-parse --abbrev-ref HEAD'.execute().text.trim()
+        def revision = 'git rev-list --max-count 1 --timestamp --abbrev-commit HEAD'.execute().text.trim()
+        def commitHash = revision.split(' ').last()
+        def timestamp = revision ? new java.util.Date(java.util.concurrent.TimeUnit.SECONDS.toMillis(revision.split(' ').first() as long)).format("yyyy-MM-dd'T'HH:mm:ssZ") : null
 
-	    File resourcesDir = new File(project.getBuildDir(), 'resources/main')
-	    File propertiesFile = new File(resourcesDir, 'git.properties')
-	    if(!propertiesFile.exists()) {
-	        resourcesDir.mkdirs()
-	        propertiesFile.createNewFile()
-	    }
+        File resourcesDir = new File(project.getBuildDir(), 'resources/main')
+        File propertiesFile = new File(resourcesDir, 'git.properties')
+        if(!propertiesFile.exists()) {
+            resourcesDir.mkdirs()
+            propertiesFile.createNewFile()
+        }
 
-	    def newline = System.getProperty('line.separator')
-	    propertiesFile.text = "git.branch=${branch}${newline}" +
-	        "git.commit.id=${commitHash}${newline}" +
-	        "git.commit.time=${timestamp}${newline}" +
-	        "api.version=${project.version}${newline}"
-	}
+        def newline = System.getProperty('line.separator')
+        propertiesFile.text = "git.branch=${branch}${newline}" +
+            "git.commit.id=${commitHash}${newline}" +
+            "git.commit.time=${timestamp}${newline}" +
+            "api.version=${project.version}${newline}"
+    }
 }
 
 if (project.hasProperty('nexusUsername')) {
-	signing {
-	    sign configurations.archives
-	}
-	
-	uploadArchives {
-	    repositories {
-	    	// see: http://central.sonatype.org/pages/gradle.html
-	        mavenDeployer {
-	            beforeDeployment { 
-	            	MavenDeployment deployment -> signing.signPom(deployment) 
-	            }
-	            
-	            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-	                authentication(userName: nexusUsername, password: nexusPassword)
-	            }
-	            
-	            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-	                authentication(userName: nexusUsername, password: nexusPassword)
-	            }
-	            
-	            pom.project {
-	                name project.name
-	                packaging 'jar'
-	                description project.description
-	
-	                licenses {
-	                    license {
-	                        name 'Apache License 2.0'
-	                        url 'https://www.apache.org/licenses/LICENSE-2.0'
-	                        distribution 'repo'
-	                    }
-	                }
-	
-	                developers {
-	                    developer {
-	                        id = 'arakelian'
-	                        name = 'Greg Arakelian'
-	                        email = 'greg@arakelian.com'
-	                    }
-	                }
-	            }
-	        }
-	    }
-	}
+    signing {
+        sign configurations.archives
+    }
+
+    uploadArchives {
+        repositories {
+            // see: http://central.sonatype.org/pages/gradle.html
+            mavenDeployer {
+                beforeDeployment {
+                    MavenDeployment deployment -> signing.signPom(deployment)
+                }
+
+                repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                    authentication(userName: nexusUsername, password: nexusPassword)
+                }
+
+                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                    authentication(userName: nexusUsername, password: nexusPassword)
+                }
+
+                pom.project {
+                    name project.name
+                    packaging 'jar'
+                    description project.description
+
+                    licenses {
+                        license {
+                            name 'Apache License 2.0'
+                            url 'https://www.apache.org/licenses/LICENSE-2.0'
+                            distribution 'repo'
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id = 'arakelian'
+                            name = 'Greg Arakelian'
+                            email = 'greg@arakelian.com'
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 
-// This code allows us to define aliases, such as "all", so that when we do "gradle all", 
+// This code allows us to define aliases, such as "all", so that when we do "gradle all",
 // we can substitute in a series of other gradle tasks
 //
 // see: https://caffeineinduced.wordpress.com/2015/01/25/run-a-list-of-gradle-tasks-in-specific-order/
