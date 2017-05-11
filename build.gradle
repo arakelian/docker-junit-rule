@@ -20,7 +20,7 @@ plugins {
     id 'org.inferred.processors' version '1.2.3'
 
     // to ensure clean code
-    id "net.ltgt.errorprone" version "0.0.9"
+    id "net.ltgt.errorprone" version "0.0.10"
 
     // for deployment to Maven Central
     id "io.codearte.nexus-staging" version "0.6.1"
