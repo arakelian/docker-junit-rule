@@ -244,8 +244,8 @@ public class Container {
     }
 
     /**
-     * Register a shutdown hook with the JVM runtime, closing this context on JVM shutdown unless it
-     * has already been closed at that time.
+     * Register a shutdown hook with the JVM runtime, closing this context on JVM shutdown unless it has
+     * already been closed at that time.
      * <p>
      * Delegates to {@code doClose()} for the actual closing procedure.
      *
