@@ -14,28 +14,7 @@
  * limitations under the License.
  */
 
+@Value.Style(get = { "is*", "get*" })
 package com.arakelian.docker.junit;
 
 import org.immutables.value.Value;
-
-/**
- * Docker configuration.
- *
- * We use <a href="immutables.github.io">Immutables</a> to generate immutable Java beans, via Java
- * Annotation Processing.
- *
- * @author Greg Arakelian
- */
-@Value.Immutable(copy = false)
-public interface DockerConfig {
-    public String getImage();
-
-    public String getName();
-
-    public String[] getPorts();
-
-    @Value.Default
-    public default boolean isAlwaysRemoveContainer() {
-        return false;
-    }
-}

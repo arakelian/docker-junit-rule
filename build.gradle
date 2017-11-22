@@ -14,13 +14,13 @@ plugins {
     id 'idea'
 
     // keep dependencies up-to-date!
-    id 'com.github.ben-manes.versions' version '0.15.0'
+    id 'com.github.ben-manes.versions' version '0.17.0'
 
     // useful for creating immutable java beans
     id 'org.inferred.processors' version '1.2.15'
 
     // to ensure clean code
-    id "net.ltgt.errorprone" version "0.0.12"
+    id "net.ltgt.errorprone" version "0.0.13"
 
     // for deployment to Maven Central
     id "io.codearte.nexus-staging" version "0.11.0"
@@ -35,7 +35,7 @@ dependencies {
     processor 'org.immutables:value:2.5.6'
 
     compile 'junit:junit:4.12'
-    compile 'com.spotify:docker-client:8.9.1'
+    compile 'com.spotify:docker-client:8.9.2'
 
     // need 2.22.2+ to fix bug which prevents jersey from exiting
     // see: https://github.com/spotify/docker-client/issues/405
