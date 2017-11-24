@@ -210,8 +210,7 @@ public class Container {
 
         if (jenkins) {
             // when running inside a Jenkins container, we are a sibling to the other
-            // container,
-            // and should access it via the exposed ip
+            // container, and should access it via the exposed ip
             final Matcher matcher = PORT_PROTOCOL_PATTERN.matcher(portName);
             if (matcher.find()) {
                 return Integer.parseInt(matcher.group(1));
