@@ -1,1 +1,52 @@
-remote_theme:arakelian/jekyll-theme-gerbera
+title:    Gerbera Theme 
+tagline:  Gerbera theme for Jekyll inspired by Facebook's GraphQL documentation 
+version:  2.0.0
+
+description: >
+   A documentation theme for Jekyll Inspired by Facebook's <a href="http://graphql.org">GraphQL documentation</a>. 
+   Made by <a href="https://github.com/arakelian">Greg Arakelian</a>.
+
+author: Greg Arakelian
+email: greg@arakelian.com
+github_username:  arakelian
+
+github:
+  repo:           https://github.com/arakelian/docker-junit-rule
+
+theme: jekyll-theme-gerbera
+remote_theme: arakelian/jekyll-theme-gerbera
+
+markdown: kramdown
+highlighter: rouge
+
+sass:
+  style: compressed
+
+collections:
+  examples:
+    order: 2
+    title: "Examples"
+    output: true
+  posts:
+    order: 3
+    title: "Blog"
+    indexPage: "/blog/"
+    permalink:    /blog/:categories/:year/:month/:day/:title
+    
+jekyll_tidy:
+    #compress_html: true
+    #ignore_env: development    
+
+baseurl:          "" # the subpath of your site
+
+# see: https://jekyllrb.com/docs/permalinks/
+permalink:        /:categories/:year/:month/:day/:title/
+
+gems:
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-tidy
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
