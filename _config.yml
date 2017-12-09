@@ -20,7 +20,8 @@ github:
     path: "/"
   repository_url: "https://github.com/arakelian/jekyll-theme-gerbera"
 
-remote_theme: arakelian/jekyll-theme-gerbera
+remote_theme: benbalter/retlab
+#remote_theme: arakelian/jekyll-theme-gerbera
 
 jekyll_tidy:
     compress_html: true
