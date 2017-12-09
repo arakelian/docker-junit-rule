@@ -1,24 +1,47 @@
-title:    docker-junit-rule
-tagline:  JUnit Rule for creating reusable Docker containers that live across JUnit test clases
-version:  1.5.1
+exclude:
+  - Gemfile
+  - Gemfile.lock
 
-description: >
-   JUnit Rule for starting and stop Docker containers as part of a JUnit test case.
+plugins:
+  - jekyll-remote-theme
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-tidy
 
-author: Greg Arakelian
-email: greg@arakelian.com
-github_username:  arakelian
+sass:
+  style: compressed
 
 github:
-  repo:           https://github.com/arakelian/docker-junit-rule
+  private: false
+  license:
+    name: MIT
+  source:
+    branch: "master"
+    path: "/"
+  repository_url: "https://github.com/arakelian/jekyll-theme-gerbera"
 
 remote_theme: arakelian/jekyll-theme-gerbera
+
+jekyll_tidy:
+    compress_html: true
+    ignore_env: development    
 
 markdown: kramdown
 highlighter: rouge
 
-sass:
-  style: compressed
+
+title:    docker-junit-rule
+tagline:  JUnit Rule for creating reusable Docker containers that live across JUnit test clases
+version:  1.5.1
+author: Greg Arakelian
+email: greg@arakelian.com
+
+description: >
+   JUnit Rule for starting and stop Docker containers as part of a JUnit test case.
+
+
+# see: https://jekyllrb.com/docs/permalinks/
+permalink:        /:categories/:year/:month/:day/:title/
 
 collections:
   examples:
@@ -30,22 +53,3 @@ collections:
     title: "Blog"
     indexPage: "/blog/"
     permalink:    /blog/:categories/:year/:month/:day/:title
-    
-jekyll_tidy:
-    #compress_html: true
-    #ignore_env: development    
-
-baseurl:          "" # the subpath of your site
-
-# see: https://jekyllrb.com/docs/permalinks/
-permalink:        /:categories/:year/:month/:day/:title/
-
-plugins:
-  - jekyll-feed
-  - jekyll-sitemap
-  - jekyll-tidy
-  - jekyll-remote-theme
-
-exclude:
-  - Gemfile
-  - Gemfile.lock
