@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,108 +17,177 @@
 
 package com.arakelian.docker.junit;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.commons.lang.StringUtils;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.spotify.docker.client.messages.ContainerConfig;
-import com.spotify.docker.client.messages.HostConfig;
-import com.spotify.docker.client.messages.PortBinding;
+import com.arakelian.docker.junit.model.DockerConfig;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 
 /**
  * <p>
- * JUnit rule starting a docker container before the test and killing it afterwards.
+ * JUnit rule starting a docker container before a test and killing it afterwards.
+ * 
+ * This rule allows a container to keep running between different unit tests to improve performance.
+ * It is smart enough to shutdown the containers when all of the unit tests complete.
  * </p>
  * <p>
- * Uses spotify/docker-client. Adapted from https://github.com/geowarin/docker-junit-rule
+ * NOTES: Originally adapted from https://github.com/geowarin/docker-junit-rule before making a wide
+ * variety of changes.
  * </p>
  *
  * @author Greg Arakelian
  */
-public abstract class DockerRule implements TestRule, ContainerListener {
+public class DockerRule implements TestRule {
+    public class StatementWithDockerRule extends Statement {
+        private final Statement statement;
+
+        public StatementWithDockerRule(final Statement statement) {
+            this.statement = statement;
+        }
+
+        @Override
+        public void evaluate() throws Throwable {
+            if (configs.size() == 0) {
+                // not using docker at all
+                statement.evaluate();
+                return;
+            }
+
+            for (final DockerConfig config : configs.values()) {
+                final Container container = register(config);
+                try {
+                    DockerRule.this.container = container;
+                    container.start();
+                    statement.evaluate();
+                } catch (final Exception e) {
+                    container.stop();
+                    throw new RuntimeException("Unable to start docker container: " + config, e);
+                } finally {
+                    DockerRule.this.container = null;
+                    if (!config.isAllowRunningBetweenUnitTests()) {
+                        container.stop();
+                    }
+                }
+            }
+        }
+    }
+
+    /** Logging **/
     private static final Logger LOGGER = LoggerFactory.getLogger(DockerRule.class);
 
     /** Cache of docker contexts **/
-    private static final Map<String, Container> CONTAINER_CACHE = new ConcurrentHashMap<>();
+    private static final Map<String, Container> CONTAINERS = new ConcurrentHashMap<>();
 
-    /** Docker rule configuration **/
-    final DockerConfig config;
+    /** Synchronization lock **/
+    private static final transient Lock CONTAINERS_LOCK = new ReentrantLock();
+
+    /**
+     * Returns a list of registered containers.
+     *
+     * @return a list of registered containers.
+     */
+    public static List<Container> getRegisteredContainers() {
+        return ImmutableList.copyOf(CONTAINERS.values());
+    }
+
+    /**
+     * Returns a {@link Container} for the given {@link DockerConfig}. If the container has not been
+     * created yet, this method will create it; otherwise, it will return the previously created
+     * container. There is a single <code>Container</code> associated with any given
+     * <code>DockerConfig</code>.
+     *
+     * @param config
+     *            container configuration.
+     * @return a {@link Container} for the given {@link DockerConfig}.
+     */
+    protected static Container register(final DockerConfig config) {
+        CONTAINERS_LOCK.lock();
+        try {
+            final String name = config.getName();
+            Container container = CONTAINERS.get(name);
+            if (container == null) {
+                container = new Container(config);
+                CONTAINERS.put(name, container);
+            }
+            LOGGER.info("Registered docker configuration: {}", name);
+            return container;
+        } finally {
+            CONTAINERS_LOCK.unlock();
+        }
+    }
+
+    /**
+     * Starts a docker container with the given configuration.
+     *
+     * @param config
+     *            container configuration
+     * @param stopOthers
+     *            true to stop other running containers; useful to limit the amount of memory that a
+     *            series of unit tests will consume.
+     * @return a {@link Container} representing the started container.
+     * @throws Exception
+     *             if the container cannot be started
+     */
+    public static Container start(final DockerConfig config, final boolean stopOthers) throws Exception {
+        Preconditions.checkArgument(config != null, "config must be non-null");
+
+        if (stopOthers) {
+            getRegisteredContainers().stream() //
+                    .filter(container -> {
+                        return container.isStarted()
+                                && !StringUtils.equals(config.getName(), container.getConfig().getName());
+                    }) //
+                    .forEach(container -> container.stop());
+        }
+
+        final Container container = register(config);
+        container.start();
+        return container;
+    }
+
+    /** Mapping of configurations **/
+    private final Map<String, DockerConfig> configs = Maps.newLinkedHashMap();
 
     /** Docker container **/
     private Container container;
 
-    public DockerRule(final DockerConfig config) {
-        this.config = config;
+    public DockerRule() {
+    }
+
+    public DockerRule(final DockerConfig... configs) {
+        for (final DockerConfig config : configs) {
+            addDockerConfig(config);
+        }
+    }
+
+    protected void addDockerConfig(final DockerConfig config) {
+        final String name = config.getName();
+        Preconditions.checkState(!this.configs.containsKey(name), "Container %s already defined");
+        this.configs.put(name, config);
     }
 
     @Override
     public final Statement apply(final Statement base, final Description description) {
-        // share or create container context
-        synchronized (CONTAINER_CACHE) {
-            final String name = config.getName();
-            Container container = CONTAINER_CACHE.get(name);
-            if (container == null) {
-                container = createContainer();
-                CONTAINER_CACHE.put(name, container);
-            }
-            this.container = container;
-        }
-
-        try {
-            container.start();
-        } catch (final Exception e) {
-            container.stop();
-            throw new RuntimeException("Unable to start docker container", e);
-        }
-
-        LOGGER.debug("Applying {} to test class [{}]", this.getClass().getSimpleName(),
-                description.getTestClass().getName());
-        return base;
+        return new StatementWithDockerRule(base);
     }
 
-    protected abstract void configureContainer(final ContainerConfig.Builder builder);
-
-    protected abstract void configureHost(final HostConfig.Builder builder);
-
-    protected Container createContainer() {
-        // host configuration
-        final HostConfig.Builder hostConfigBuilder = HostConfig.builder() //
-                .portBindings(createPortBindings(config.getPorts()));
-        configureHost(hostConfigBuilder);
-        final HostConfig hostConfig = hostConfigBuilder.build();
-
-        // container configuration
-        final ContainerConfig.Builder configBuilder = ContainerConfig.builder() //
-                .hostConfig(hostConfig) //
-                .image(config.getImage()) //
-                .networkDisabled(false) //
-                .exposedPorts(config.getPorts());
-        configureContainer(configBuilder);
-        final ContainerConfig containerConfig = configBuilder.build();
-
-        return new Container(config.getName(), containerConfig, config.isAlwaysRemoveContainer(), this);
-    }
-
-    private Map<String, List<PortBinding>> createPortBindings(final String[] exposedPorts) {
-        final Map<String, List<PortBinding>> portBindings = new HashMap<>();
-        if (exposedPorts != null) {
-            for (final String port : exposedPorts) {
-                final List<PortBinding> hostPorts = Collections
-                        .singletonList(PortBinding.randomPort("0.0.0.0"));
-                portBindings.put(port, hostPorts);
-            }
-        }
-        return portBindings;
-    }
-
+    /**
+     * Returns the {@link Container} being used by the current test.
+     *
+     * @return the {@link Container} being used by the current test.
+     */
     public final Container getContainer() {
         return container;
     }

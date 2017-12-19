@@ -15,25 +15,16 @@
  * limitations under the License.
  */
 
-package com.arakelian.docker.junit;
+package com.arakelian.docker.junit.model;
 
-import com.arakelian.docker.junit.model.ImmutableDockerConfig;
+import com.spotify.docker.client.messages.ContainerConfig;
 
 /**
- * Test rule that starts Rabbit MQ and waits until unit test can connect to it.
- *
+ * Allows a unit test to configure a Docker container with great specificity.
+ * 
  * @author Greg Arakelian
  */
-public class RabbitDockerRule extends DockerRule {
-    public RabbitDockerRule() {
-        super(ImmutableDockerConfig.builder() //
-                .name("docker-test") //
-                .image("rabbitmq:management") //
-                .ports("5672") //
-                .addStartedListener(container -> {
-                    final int port = container.getPort("5672/tcp");
-                    container.waitForPort(port);
-                    container.waitForLog("Server startup complete");
-                }).build());
-    }
+@FunctionalInterface
+public interface ContainerConfigurer {
+    public void configureContainer(final ContainerConfig.Builder builder);
 }

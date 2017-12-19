@@ -5,9 +5,9 @@
  * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,6 +27,8 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -37,20 +39,26 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.arakelian.docker.junit.model.ContainerConfigurer;
+import com.arakelian.docker.junit.model.DockerConfig;
+import com.arakelian.docker.junit.model.HostConfigurer;
+import com.arakelian.docker.junit.model.StartedListener;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.DockerClient.RemoveContainerParam;
 import com.spotify.docker.client.LogStream;
 import com.spotify.docker.client.exceptions.DockerCertificateException;
 import com.spotify.docker.client.exceptions.DockerException;
+import com.spotify.docker.client.exceptions.ImageNotFoundException;
 import com.spotify.docker.client.messages.ContainerConfig;
 import com.spotify.docker.client.messages.ContainerCreation;
 import com.spotify.docker.client.messages.ContainerInfo;
 import com.spotify.docker.client.messages.ContainerState;
+import com.spotify.docker.client.messages.HostConfig;
 import com.spotify.docker.client.messages.PortBinding;
 
 /**
- * Represents a connection to a Docker container.
+ * Handles life-cycle management of a Docker container, e.g. starting and stopping.
  *
  * @author Greg Arakelian
  */
@@ -60,10 +68,20 @@ public class Container {
     /** Pattern for parsing port/protocol pattern **/
     private static final Pattern PORT_PROTOCOL_PATTERN = Pattern.compile("(\\d+)(\\/[a-z]+)?");
 
-    public static boolean isSocketAlive(final SocketAddress socketAddress, final int timeout) {
+    /**
+     * Returns true if a connection can be established to the given socket address within the
+     * timeout provided.
+     * 
+     * @param socketAddress
+     *            socket address
+     * @param timeoutMsecs
+     *            timeout
+     * @return true if a connection can be established to the given socket address
+     */
+    public static boolean isSocketAlive(final SocketAddress socketAddress, final int timeoutMsecs) {
         final Socket socket = new Socket();
         try {
-            socket.connect(socketAddress, timeout);
+            socket.connect(socketAddress, timeoutMsecs);
             socket.close();
             return true;
         } catch (final SocketTimeoutException exception) {
@@ -73,18 +91,21 @@ public class Container {
         }
     }
 
-    private final ContainerListener listener;
-    private final ContainerConfig config;
+    private final ContainerConfig containerConfig;
 
+    /**
+     * The docker container name. Same value that you would see if you ran "docker ps -a" in the
+     * NAMES column.
+     */
     private final String name;
 
-    /** True to delete container after test **/
-    private final boolean alwaysRemoveContainer;
+    /** Docker container configuration **/
+    private final DockerConfig config;
 
     /** Access to docker client API **/
     private DockerClient client;
 
-    /** Docker container **/
+    /** Docker container information **/
     private ContainerInfo info;
 
     /** Container id **/
@@ -111,29 +132,20 @@ public class Container {
     /**
      * Construct a container.
      *
-     * @param name
-     *            name to assign to container, or null to use default
      * @param config
-     *            the container configuration
-     * @param alwaysRemoveContainer
-     *            true if we should always remove container, e.g. "docker rm" after unit tests; by
-     *            default, the docker container is left around so that it can be reused again.
-     * @param listener
-     *            listener for container events, may be null
+     *            docker container configuration
      */
-    public Container(final String name, final ContainerConfig config, final boolean alwaysRemoveContainer,
-            final ContainerListener listener) {
-        this.name = name;
+    public Container(final DockerConfig config) {
+        this.name = config.getName();
         this.config = config;
-        this.alwaysRemoveContainer = alwaysRemoveContainer;
-        this.listener = listener;
+        this.containerConfig = createContainerConfig(config).build();
         this.jenkins = System.getenv("JENKINS_HOME") != null;
     }
 
     private void assertStarted() {
         synchronized (this.startStopMonitor) {
             if (!started.get()) {
-                throw new IllegalStateException("Docker container not started: " + config);
+                throw new IllegalStateException("Docker container not started: " + containerConfig);
             }
         }
     }
@@ -145,17 +157,39 @@ public class Container {
         final ContainerCreation container;
         try {
             if (name == null) {
-                container = client.createContainer(config);
+                container = client.createContainer(containerConfig);
             } else {
-                container = client.createContainer(config, name);
+                container = client.createContainer(containerConfig, name);
             }
             return container.id();
         } catch (final DockerException e) {
-            throw new IllegalStateException("Unable to create container using " + config, e);
+            throw new IllegalStateException("Unable to create container using " + containerConfig, e);
         } finally {
             final long elapsedMillis = System.currentTimeMillis() - startTime;
-            LOGGER.info("Created container {} in {}ms", config.image(), elapsedMillis);
+            LOGGER.info("Created container {} in {}ms", containerConfig.image(), elapsedMillis);
         }
+    }
+
+    /**
+     * Returns a new {@link ContainerConfig.Builder} based upon the given configuration.
+     *
+     * Descendant classes can override this method to customize the configuration of the Docker
+     * container beyond what is allowed by {@link DockerConfig}.
+     *
+     * @param config
+     *            docker container configuration
+     * @return a new {@link ContainerConfig.Builder}
+     */
+    protected ContainerConfig.Builder createContainerConfig(final DockerConfig config) {
+        final ContainerConfig.Builder builder = ContainerConfig.builder() //
+                .hostConfig(createHostConfig(config).build()) //
+                .image(config.getImage()) //
+                .networkDisabled(false) //
+                .exposedPorts(config.getPorts());
+        for (final ContainerConfigurer configurer : config.getContainerConfigurer()) {
+            configurer.configureContainer(builder);
+        }
+        return builder;
     }
 
     protected DockerClient createDockerClient() {
@@ -169,13 +203,45 @@ public class Container {
         }
     }
 
+    /**
+     * Returns a new {@link HostConfig.Builder} based upon the given configuration.
+     *
+     * Descendant classes can override this method to customize the configuration of the Docker
+     * container's host beyond what is allowed by {@link DockerConfig}.
+     *
+     * @param config
+     *            docker container configuration
+     * @return a new {@link HostConfig.Builder}
+     */
+    protected HostConfig.Builder createHostConfig(final DockerConfig config) {
+        final HostConfig.Builder builder = HostConfig.builder() //
+                .portBindings(createPortBindings(config.getPorts()));
+        for (final HostConfigurer configurer : config.getHostConfigurer()) {
+            configurer.configureHost(builder);
+        }
+        return builder;
+    }
+
+    protected Map<String, List<PortBinding>> createPortBindings(final String[] exposedPorts) {
+        final Map<String, List<PortBinding>> portBindings = new HashMap<>();
+        if (exposedPorts != null) {
+            for (final String port : exposedPorts) {
+                final List<PortBinding> hostPorts = Collections
+                        .singletonList(PortBinding.randomPort("0.0.0.0"));
+                portBindings.put(port, hostPorts);
+            }
+        }
+        return portBindings;
+    }
+
     private void doStop() {
         if (this.started.get() && this.stopped.compareAndSet(false, true)) {
+            LOGGER.info("Stopping {} container", config.getName());
             this.started.set(false);
 
             if (containerId != null && containerId.length() != 0) {
-                stopContainerQuietly(config.image(), containerId);
-                if (name == null || alwaysRemoveContainer) {
+                stopContainerQuietly(containerConfig.image(), containerId);
+                if (name == null || config.isAlwaysRemoveContainer()) {
                     removeContainerQuietly(containerId);
                 }
             }
@@ -188,6 +254,10 @@ public class Container {
 
     public final DockerClient getClient() {
         return client;
+    }
+
+    public DockerConfig getConfig() {
+        return config;
     }
 
     public final String getContainerId() {
@@ -229,23 +299,44 @@ public class Container {
         return -1;
     }
 
+    /**
+     * Returns true if container has been started.
+     *
+     * @return true if container has been started.
+     */
+    public boolean isStarted() {
+        return started.get();
+    }
+
     private void pullImage() throws DockerException, InterruptedException {
         // equivalent to "docker pull"
         final long startTime = System.currentTimeMillis();
+        final String image = containerConfig.image();
         try {
-            LOGGER.info("Pulling docker image {}", config.image());
-            client.pull(config.image());
+            boolean found = false;
+            try {
+                client.inspectImage(image);
+                LOGGER.info("Docker image already exists: {}", image);
+                found = true;
+            } catch (final ImageNotFoundException e) {
+                found = false;
+            }
+
+            if (config.isAlwaysPullLatestImage() || !found) {
+                LOGGER.info("Pulling docker image: {}", image);
+                client.pull(image);
+            }
         } catch (final DockerException e) {
-            throw new DockerException("Unable to pull docker image " + config.image(), e);
+            throw new DockerException("Unable to pull docker image " + image, e);
         } finally {
             final long elapsedMillis = System.currentTimeMillis() - startTime;
-            LOGGER.info("Docker image {} pulled in {}ms", config.image(), elapsedMillis);
+            LOGGER.info("Docker image {} pulled in {}ms", image, elapsedMillis);
         }
     }
 
     /**
-     * Register a shutdown hook with the JVM runtime, closing this context on JVM shutdown unless it has
-     * already been closed at that time.
+     * Register a shutdown hook with the JVM runtime, closing this context on JVM shutdown unless it
+     * has already been closed at that time.
      * <p>
      * Delegates to {@code doClose()} for the actual closing procedure.
      *
@@ -272,23 +363,40 @@ public class Container {
     private void removeContainerQuietly(final String idOrName) {
         final long startTime = System.currentTimeMillis();
         try {
-            LOGGER.info("Removing docker container {} with id {}", config.image(), idOrName);
+            LOGGER.info("Removing docker container {} with id {}", containerConfig.image(), idOrName);
             client.removeContainer(idOrName, RemoveContainerParam.removeVolumes(true));
         } catch (DockerException | InterruptedException e) {
             // log error and ignore exception
-            LOGGER.warn("Unable to remove docker container {} with id {}", config.image(), idOrName, e);
+            LOGGER.warn(
+                    "Unable to remove docker container {} with id {}",
+                    containerConfig.image(),
+                    idOrName,
+                    e);
         } finally {
             final long elapsedMillis = System.currentTimeMillis() - startTime;
-            LOGGER.info("Container {} with id {} removed in {}ms", config.image(), idOrName, elapsedMillis);
+            LOGGER.info(
+                    "Container {} with id {} removed in {}ms",
+                    containerConfig.image(),
+                    idOrName,
+                    elapsedMillis);
         }
     }
 
-    void start() throws Exception, InterruptedException {
+    public void start() throws Exception {
         synchronized (this.startStopMonitor) {
             if (this.started.get()) {
+                final ContainerInfo inspect = client.inspectContainer(name);
+                final ContainerState state = inspect.state();
+                if (!state.running()) {
+                    throw new IllegalStateException(
+                            "Container " + name + " is not running (check exit code!): " + state);
+                }
+
+                // already running
                 return;
             }
-            LOGGER.info("Starting container with {}", config);
+
+            LOGGER.info("Starting container with {}", containerConfig);
             this.stopped.set(false);
             this.started.set(true);
 
@@ -302,11 +410,11 @@ public class Container {
                     final ContainerInfo existing = client.inspectContainer(name);
                     final ContainerState state = existing.state();
 
-                    if (!config.image().equals(existing.config().image())) {
-                        // existing container has different image, e.g. elastic:2.3.4 vs
-                        // elastic:5.1.1
+                    final String image = containerConfig.image();
+                    if (!image.equals(existing.config().image())) {
+                        // existing container has different image
                         if (state != null && state.running() && state.running().booleanValue()) {
-                            stopContainerQuietly(config.image(), existing.id());
+                            stopContainerQuietly(image, existing.id());
                         }
                         removeContainerQuietly(existing.id());
                     } else {
@@ -336,26 +444,35 @@ public class Container {
             }
 
             // notify listener than container has been started
-            if (listener != null) {
+            for (final StartedListener listener : config.getStartedListener()) {
                 listener.onStarted(this);
             }
         }
     }
 
+    /**
+     * Instructs Docker to start the container
+     * 
+     * @throws DockerException
+     *             if docker cannot start the container
+     */
     private void startContainer() throws DockerException {
         final long startTime = System.currentTimeMillis();
         try {
-            LOGGER.info("Starting container {} with id {}", config.image(), containerId);
+            LOGGER.info("Starting container {} with id {}", containerConfig.image(), containerId);
             client.startContainer(containerId);
         } catch (DockerException | InterruptedException e) {
             throw new DockerException(
-                    "Unable to start container " + config.image() + " with id " + containerId, e);
+                    "Unable to start container " + containerConfig.image() + " with id " + containerId, e);
         } finally {
             final long elapsedMillis = System.currentTimeMillis() - startTime;
-            LOGGER.info("Container {} started in {}ms", config.image(), elapsedMillis);
+            LOGGER.info("Container {} started in {}ms", containerConfig.image(), elapsedMillis);
         }
     }
 
+    /**
+     * Instructs Docker to stop the container
+     */
     public void stop() {
         synchronized (this.startStopMonitor) {
             doStop();
@@ -372,11 +489,20 @@ public class Container {
         }
     }
 
+    /**
+     * Utility method to stop a container with the given image name and id/name.
+     * 
+     * @param image
+     *            image name
+     * @param idOrName
+     *            container id or name
+     */
     private void stopContainerQuietly(final String image, final String idOrName) {
         final long startTime = System.currentTimeMillis();
         try {
             LOGGER.info("Killing docker container {} with id {}", image, idOrName);
-            client.stopContainer(containerId, 10);
+            int secondsToWaitBeforeKilling = 10;
+            client.stopContainer(containerId, secondsToWaitBeforeKilling);
         } catch (DockerException | InterruptedException e) {
             // log error and ignore exception
             LOGGER.warn("Unable to kill docker container {} with id", image, idOrName, e);
@@ -416,7 +542,9 @@ public class Container {
             final String message = messages[n];
             final String log = StandardCharsets.UTF_8.decode(logs.next().content()).toString();
             if (log.contains(message)) {
-                LOGGER.info("Successfully received \"{}\" after {}ms", message,
+                LOGGER.info(
+                        "Successfully received \"{}\" after {}ms",
+                        message,
                         System.currentTimeMillis() - startTime);
                 if (++n >= messages.length) {
                     return;
@@ -470,7 +598,10 @@ public class Container {
         final SocketAddress address = new InetSocketAddress(host, port);
         for (;;) {
             if (isSocketAlive(address, 2000)) {
-                LOGGER.info("Successfully connected to container at {}:{} after {}ms", host, port,
+                LOGGER.info(
+                        "Successfully connected to container at {}:{} after {}ms",
+                        host,
+                        port,
                         System.currentTimeMillis() - startTime);
                 return;
             }

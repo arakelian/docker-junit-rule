@@ -15,25 +15,25 @@
  * limitations under the License.
  */
 
-package com.arakelian.docker.junit;
+package com.arakelian.docker.junit.model;
 
-import com.arakelian.docker.junit.model.ImmutableDockerConfig;
+import com.google.common.collect.Lists;
+import com.spotify.docker.client.messages.HostConfig.Ulimit;
 
 /**
- * Test rule that starts Rabbit MQ and waits until unit test can connect to it.
- *
+ * Utility class for creating <code>HostConfigurer</code>s.
+ * 
  * @author Greg Arakelian
  */
-public class RabbitDockerRule extends DockerRule {
-    public RabbitDockerRule() {
-        super(ImmutableDockerConfig.builder() //
-                .name("docker-test") //
-                .image("rabbitmq:management") //
-                .ports("5672") //
-                .addStartedListener(container -> {
-                    final int port = container.getPort("5672/tcp");
-                    container.waitForPort(port);
-                    container.waitForLog("Server startup complete");
-                }).build());
+public class HostConfigurers {
+    public static final HostConfigurer noUlimits() {
+        return (builder) -> {
+            final Ulimit ulimit = Ulimit.builder() //
+                    .name("nofile") //
+                    .soft(65536L) //
+                    .hard(65536L) //
+                    .build();
+            builder.ulimits(Lists.newArrayList(ulimit));
+        };
     }
 }
