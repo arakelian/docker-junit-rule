@@ -24,17 +24,38 @@ plugins {
 
     // for deployment to Maven Central
     id "io.codearte.nexus-staging" version "0.11.0"
+
+    // for building fat jar
+    id "com.github.johnrengelman.shadow" version "2.0.2"
+
+    // useful utilities
+    id "com.arakelian.multitool" version "1.1.6"
 }
 
 group   = 'com.arakelian'
 
-// common gradle code shared between projects
-apply from: "gradle/core.gradle"
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.4.1'
+}
+
+multitool {
+    relocates += [
+        'com.google.common'      : 'repackaged.com.arakelian.docker.junit.com.google.common',
+        'com.google.thirdparty'  : 'repackaged.com.arakelian.docker.junit.com.google.thirdparty',
+        'javax.annotation'       : 'repackaged.com.arakelian.docker.junit.javax.annotation',
+    ]
+}
 
 dependencies {
     processor 'org.immutables:value:2.5.6'
 
+    // we shadow Guava due to frequent downstream compatibility issues
+    shadow 'com.google.guava:guava:23.6-jre'
+
+    // we expose a JUnit rule so obviously JUnit is a runtime requirement 
     compile 'junit:junit:4.12'
+    
+    // easy-to-use library for communicating with Docker host
     compile 'com.spotify:docker-client:8.9.2'
 
     // need 2.22.2+ to fix bug which prevents jersey from exiting
