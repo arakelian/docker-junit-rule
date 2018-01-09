@@ -40,9 +40,22 @@ task wrapper(type: Wrapper) {
 
 multitool {
     relocates += [
-        'com.google.common'      : 'repackaged.com.arakelian.docker.junit.${prefix}com.google.common',
-        'com.google.thirdparty'  : 'repackaged.com.arakelian.docker.junit.${prefix}com.google.thirdparty',
-        'javax.annotation'       : 'repackaged.com.arakelian.docker.junit.${prefix}javax.annotation',
+        'com.fasterxml'               : 'repackaged.com.arakelian.docker.junit.${prefix}com.fasterxml',
+        'com.github.rholder.retry'    : 'repackaged.com.arakelian.docker.junit.${prefix}com.github.rholder.retry',
+        'com.google.common'           : 'repackaged.com.arakelian.docker.junit.${prefix}com.google.common',
+        'com.google.thirdparty'       : 'repackaged.com.arakelian.docker.junit.${prefix}com.google.thirdparty',
+        'com.kenai'                   : 'repackaged.com.arakelian.docker.junit.${prefix}com.kenai',
+        'com.spotify.docker'          : 'repackaged.com.arakelian.docker.junit.${prefix}com.spotify.docker',
+        'javax.annotation'            : 'repackaged.com.arakelian.docker.junit.${prefix}javax.annotation',
+        'javax.inject'                : 'repackaged.com.arakelian.docker.junit.${prefix}javax.inject',
+        'javax.ws.rs'                 : 'repackaged.com.arakelian.docker.junit.${prefix}javax.ws.rs',
+        'jersey.repackaged'           : 'repackaged.com.arakelian.docker.junit.${prefix}jersey',
+        'jni'                         : 'repackaged.com.arakelian.docker.junit.${prefix}jni',
+        'jnr'                         : 'repackaged.com.arakelian.docker.junit.${prefix}jnr',
+        'org.apache'                  : 'repackaged.com.arakelian.docker.junit.${prefix}org.apache',
+        'org.bouncycastle'            : 'repackaged.com.arakelian.docker.junit.${prefix}org.bouncycastle',
+        'org.glassfish'               : 'repackaged.com.arakelian.docker.junit.${prefix}org.glassfish',
+        'org.jvnet'                   : 'repackaged.com.arakelian.docker.junit.${prefix}org.jvnet',
     ]
 }
 
@@ -52,11 +65,13 @@ dependencies {
     // we shadow Guava due to frequent downstream compatibility issues
     shadow 'com.google.guava:guava:23.6-jre'
 
-    // we expose a JUnit rule so obviously JUnit is a runtime requirement 
+    // we expose a JUnit rule so obviously JUnit is a runtime requirement
     compile 'junit:junit:4.12'
-    
+
     // easy-to-use library for communicating with Docker host
-    compile 'com.spotify:docker-client:8.9.2'
+    shadow ('com.spotify:docker-client:8.9.2') {
+        exclude group: 'org.slf4j'
+    }
 
     // logging
     testCompile 'org.apache.logging.log4j:log4j-api:2.9.1'
