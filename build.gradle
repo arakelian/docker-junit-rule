@@ -29,7 +29,7 @@ plugins {
     id "com.github.johnrengelman.shadow" version "2.0.2"
 
     // useful utilities
-    id "com.arakelian.multitool" version "1.2.1"
+    id "com.arakelian.multitool" version "1.2.2"
 }
 
 group   = 'com.arakelian'
@@ -40,39 +40,66 @@ task wrapper(type: Wrapper) {
 
 multitool {
     relocates += [
+        'afu'                         : 'repackaged.com.arakelian.docker.junit.${prefix}afu',
         'com.fasterxml'               : 'repackaged.com.arakelian.docker.junit.${prefix}com.fasterxml',
         'com.github.rholder.retry'    : 'repackaged.com.arakelian.docker.junit.${prefix}com.github.rholder.retry',
         'com.google.common'           : 'repackaged.com.arakelian.docker.junit.${prefix}com.google.common',
+        'com.google.errorprone'       : 'repackaged.com.arakelian.docker.junit.${prefix}com.google.errorprone',
+        'com.google.j2objc'           : 'repackaged.com.arakelian.docker.junit.${prefix}com.google.j2objc',
         'com.google.thirdparty'       : 'repackaged.com.arakelian.docker.junit.${prefix}com.google.thirdparty',
-        'com.kenai'                   : 'repackaged.com.arakelian.docker.junit.${prefix}com.kenai',
+        'javassist'                   : 'repackaged.com.arakelian.docker.junit.${prefix}javassist',
         'javax.annotation'            : 'repackaged.com.arakelian.docker.junit.${prefix}javax.annotation',
         'javax.inject'                : 'repackaged.com.arakelian.docker.junit.${prefix}javax.inject',
         'javax.ws.rs'                 : 'repackaged.com.arakelian.docker.junit.${prefix}javax.ws.rs',
         'jersey.repackaged'           : 'repackaged.com.arakelian.docker.junit.${prefix}jersey',
-        'jni'                         : 'repackaged.com.arakelian.docker.junit.${prefix}jni',
         'jnr'                         : 'repackaged.com.arakelian.docker.junit.${prefix}jnr',
-        'org.apache'                  : 'repackaged.com.arakelian.docker.junit.${prefix}org.apache',
+        'org.aopalliance'             : 'repackaged.com.arakelian.docker.junit.${prefix}org.aopalliance',
+        'org.apache.commons.codec'    : 'repackaged.com.arakelian.docker.junit.${prefix}org.apache.commons.codec',
+        'org.apache.commons.compress' : 'repackaged.com.arakelian.docker.junit.${prefix}org.apache.commons.compress',
+        'org.apache.commons.io'       : 'repackaged.com.arakelian.docker.junit.${prefix}org.apache.commons.io',
+        'org.apache.commons.lang'     : 'repackaged.com.arakelian.docker.junit.${prefix}org.apache.commons.lang',
+        'org.apache.http'             : 'repackaged.com.arakelian.docker.junit.${prefix}org.apache.http',
         'org.bouncycastle'            : 'repackaged.com.arakelian.docker.junit.${prefix}org.bouncycastle',
+        'org.checkerframework'        : 'repackaged.com.arakelian.docker.junit.${prefix}org.checkerframework',
+        'org.codehaus'                : 'repackaged.com.arakelian.docker.junit.${prefix}org.codehaus',
         'org.glassfish'               : 'repackaged.com.arakelian.docker.junit.${prefix}org.glassfish',
         'org.jvnet'                   : 'repackaged.com.arakelian.docker.junit.${prefix}org.jvnet',
+        'org.objectweb.asm'           : 'repackaged.com.arakelian.docker.junit.${prefix}org.objectweb.asm',
+        //'com.kenai'                   : 'repackaged.com.arakelian.docker.junit.${prefix}com.kenai',
+        //'jni'                         : 'repackaged.com.arakelian.docker.junit.${prefix}jni',
     ]
 
-    // we want to keep entire client library as we don't know what client will want to use
+    configureMinify = true
+
     proguardOptions.keep += [
-        'class com.spotify.docker.** { *; }'
+        'class com.arakelian.** { *; }',
+        'class com.kenai.** { *; }',
+        'class com.spotify.docker.** { *; }',
+        'class jni.** { *; }',
+        'class **.org.glassfish.** { *; }',
+        'class **.javax.ws.rs.** { *; }',
+        'class **.org.jvnet.** { *; }',
+        'class **.jnr.** { *; }',
     ]
+
+    proguardOptions.keepclassmembers = [
+        'class * extends java.lang.Enum { *; }'
+    ]
+
+    proguardOptions.optimizationpasses = 5
 }
 
 dependencies {
     processor 'org.immutables:value:2.5.6'
 
-    // we shadow Guava due to frequent downstream compatibility issues
-    shadow 'com.google.guava:guava:23.6-jre'
-
     // we expose a JUnit rule so obviously JUnit is a runtime requirement
     compile 'junit:junit:4.12'
 
-    // easy-to-use library for communicating with Docker host
+    // we shadow Guava due to frequent downstream compatibility issues
+    shadow 'com.google.guava:guava:23.6-jre'
+
+    // easy-to-use library for communicating with Docker host; we shadow the library
+    // to avoid downstream compatibility issues
     shadow ('com.spotify:docker-client:8.9.2') {
         exclude group: 'org.slf4j'
     }
