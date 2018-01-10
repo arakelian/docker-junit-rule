@@ -29,7 +29,7 @@ plugins {
     id "com.github.johnrengelman.shadow" version "2.0.2"
 
     // useful utilities
-    id "com.arakelian.multitool" version "1.2.0"
+    id "com.arakelian.multitool" version "1.2.1"
 }
 
 group   = 'com.arakelian'
@@ -45,7 +45,6 @@ multitool {
         'com.google.common'           : 'repackaged.com.arakelian.docker.junit.${prefix}com.google.common',
         'com.google.thirdparty'       : 'repackaged.com.arakelian.docker.junit.${prefix}com.google.thirdparty',
         'com.kenai'                   : 'repackaged.com.arakelian.docker.junit.${prefix}com.kenai',
-        'com.spotify.docker'          : 'repackaged.com.arakelian.docker.junit.${prefix}com.spotify.docker',
         'javax.annotation'            : 'repackaged.com.arakelian.docker.junit.${prefix}javax.annotation',
         'javax.inject'                : 'repackaged.com.arakelian.docker.junit.${prefix}javax.inject',
         'javax.ws.rs'                 : 'repackaged.com.arakelian.docker.junit.${prefix}javax.ws.rs',
@@ -56,6 +55,11 @@ multitool {
         'org.bouncycastle'            : 'repackaged.com.arakelian.docker.junit.${prefix}org.bouncycastle',
         'org.glassfish'               : 'repackaged.com.arakelian.docker.junit.${prefix}org.glassfish',
         'org.jvnet'                   : 'repackaged.com.arakelian.docker.junit.${prefix}org.jvnet',
+    ]
+
+    // we want to keep entire client library as we don't know what client will want to use
+    proguardOptions.keep += [
+        'class com.spotify.docker.** { *; }'
     ]
 }
 
