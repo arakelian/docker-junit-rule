@@ -2,6 +2,77 @@
 
 A junit rule to run docker containers.
 
+
+## Features
+
+* `DockerRule` will automatically start and stop your Docker container.
+* `DockerRule` will share your container across multiple JUnit tests, without having to start/stop the container for each test.
+
+
+## Usage
+
+Starting a Docker container as part of your unit test is as simple as including a `ClassRule` that looks like this:
+
+```
+    @ClassRule
+    public static RabbitMqDockerRule rabbitmq = new RabbitMqDockerRule();
+```
+
+To configure your own rule, you'll extend from `DockerRule`:
+
+```
+public class RabbitDockerRule extends DockerRule {
+    public RabbitDockerRule() {
+        super(ImmutableDockerConfig.builder() //
+                .name("docker-test") //
+                .image("rabbitmq:management") //
+                .ports("5672") //
+                .addStartedListener(container -> {
+                    container.waitForPort("5672/tcp");
+                    container.waitForLog("Server startup complete");
+                }).build());
+    }
+}
+```
+
+A couple of things to note:
+* Your custom `ClassRule` will extend from `DockerRule`
+* Your constructor will provide `DockerRule` with an immutable configuration that describes the Docker container
+  that needs to be created. 
+* The configuration you provide includes a user-defined callback for determining when the container has started. A few helper methods are
+  provided to help you do this.
+
+
+## Customizing Docker Container
+
+DockerRule provides two callback for customizing the Docker container, `addHostConfigurer` and `addContainerConfigurer`.
+
+Here's an example of how you could configure an Elastic container.  Notice how we can use `addHostConfigurer` to 
+remove ulimits, and `addContainerConfigurer` to set environment variables.
+ 
+
+```
+public class ElasticDockerRule extends DockerRule {
+    public ElasticDockerRule() {
+        super(ImmutableDockerConfig.builder() //
+                .name(name) //
+                .image(image) //
+                .ports("9200") //
+                .addHostConfigurer(HostConfigurers.noUlimits()) //
+                .addContainerConfigurer(builder -> {
+                    builder.env(
+                            "http.host=0.0.0.0", //
+                            "transport.host=127.0.0.1", //
+                            "xpack.security.enabled=false", //
+                            "xpack.monitoring.enabled=false", //
+                            "xpack.graph.enabled=false", //
+                            "xpack.watcher.enabled=false", //
+                            "ES_JAVA_OPTS=-Xms512m -Xmx512m");
+                }) //
+                .build());
+    }
+}
+
 ## Installation
 
 The library is available on Maven Central
