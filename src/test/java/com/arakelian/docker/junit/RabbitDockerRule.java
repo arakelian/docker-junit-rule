@@ -31,8 +31,7 @@ public class RabbitDockerRule extends DockerRule {
                 .image("rabbitmq:management") //
                 .ports("5672") //
                 .addStartedListener(container -> {
-                    final int port = container.getPort("5672/tcp");
-                    container.waitForPort(port);
+                    container.waitForPort("5672/tcp");
                     container.waitForLog("Server startup complete");
                 }).build());
     }

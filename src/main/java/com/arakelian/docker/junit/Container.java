@@ -33,9 +33,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
+import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +42,7 @@ import com.arakelian.docker.junit.model.ContainerConfigurer;
 import com.arakelian.docker.junit.model.DockerConfig;
 import com.arakelian.docker.junit.model.HostConfigurer;
 import com.arakelian.docker.junit.model.StartedListener;
+import com.google.common.base.Preconditions;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.DockerClient.RemoveContainerParam;
@@ -63,15 +63,19 @@ import com.spotify.docker.client.messages.PortBinding;
  * @author Greg Arakelian
  */
 public class Container {
-    private static final Logger LOGGER = LoggerFactory.getLogger(DockerRule.class);
+    @Value.Immutable
+    public interface Binding {
+        public String getHost();
 
-    /** Pattern for parsing port/protocol pattern **/
-    private static final Pattern PORT_PROTOCOL_PATTERN = Pattern.compile("(\\d+)(\\/[a-z]+)?");
+        public int getPort();
+    }
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(DockerRule.class);
 
     /**
      * Returns true if a connection can be established to the given socket address within the
      * timeout provided.
-     * 
+     *
      * @param socketAddress
      *            socket address
      * @param timeoutMsecs
@@ -111,12 +115,6 @@ public class Container {
     /** Container id **/
     private String containerId;
 
-    /** Container host **/
-    private String host;
-
-    /** True if running inside a sibling container **/
-    private final boolean jenkins;
-
     /** Reference to the JVM shutdown hook, if registered */
     private Thread shutdownHook;
 
@@ -139,7 +137,286 @@ public class Container {
         this.name = config.getName();
         this.config = config;
         this.containerConfig = createContainerConfig(config).build();
-        this.jenkins = System.getenv("JENKINS_HOME") != null;
+    }
+
+    public final DockerClient getClient() {
+        return client;
+    }
+
+    public DockerConfig getConfig() {
+        return config;
+    }
+
+    public final String getContainerId() {
+        assertStarted();
+        return containerId;
+    }
+
+    public final ContainerInfo getInfo() {
+        assertStarted();
+        return info;
+    }
+
+    /**
+     * Returns the host and port information for the given Docker port name.
+     *
+     * @param portName
+     *            Docker port name, e.g. '9200/tcp'
+     * @return the host and port information
+     * @throws IllegalStateException
+     *             if the container has not been started
+     * @throws IllegalArgumentException
+     *             the given port name does not exist
+     */
+    public final Binding getPortBinding(final String portName)
+            throws IllegalStateException, IllegalArgumentException {
+        assertStarted();
+
+        final Map<String, List<PortBinding>> ports = info.networkSettings().ports();
+        final List<PortBinding> portBindings = ports.get(portName);
+        if (portBindings == null || portBindings.isEmpty()) {
+            throw new IllegalArgumentException("Unknown port binding: " + portName);
+        }
+
+        final PortBinding portBinding = portBindings.get(0);
+        return ImmutableBinding.builder() //
+                .host(portBinding.hostIp()) //
+                .port(Integer.parseInt(portBinding.hostPort())) //
+                .build();
+    }
+
+    /**
+     * Returns true if container has been started.
+     *
+     * @return true if container has been started.
+     */
+    public boolean isStarted() {
+        return started.get();
+    }
+
+    public void start() throws Exception {
+        synchronized (this.startStopMonitor) {
+            if (this.started.get()) {
+                final ContainerInfo inspect = client.inspectContainer(name);
+                final ContainerState state = inspect.state();
+                if (!state.running()) {
+                    throw new IllegalStateException(
+                            "Container " + name + " is not running (check exit code!): " + state);
+                }
+
+                // already running
+                return;
+            }
+
+            LOGGER.info("Starting container with {}", containerConfig);
+            this.stopped.set(false);
+            this.started.set(true);
+
+            registerShutdownHook();
+            client = createDockerClient();
+
+            boolean created = false;
+            boolean running = false;
+            if (name != null) {
+                try {
+                    final ContainerInfo existing = client.inspectContainer(name);
+                    final ContainerState state = existing.state();
+
+                    final String image = containerConfig.image();
+                    if (!image.equals(existing.config().image())) {
+                        // existing container has different image
+                        if (state != null && state.running() && state.running().booleanValue()) {
+                            stopContainerQuietly(image, existing.id());
+                        }
+                        removeContainerQuietly(existing.id());
+                    } else {
+                        created = true;
+                        running = state != null && state.running() && state.running().booleanValue();
+                        containerId = existing.id();
+                        info = existing;
+                    }
+                } catch (final DockerException e) {
+                    // we could not get information about container, fall through
+                }
+            }
+
+            if (!created) {
+                pullImage();
+                containerId = createContainer();
+            }
+            if (!running) {
+                startContainer();
+                info = client.inspectContainer(containerId);
+            }
+
+            // notify listener than container has been started
+            for (final StartedListener listener : config.getStartedListener()) {
+                listener.onStarted(this);
+            }
+        }
+    }
+
+    /**
+     * Instructs Docker to stop the container
+     */
+    public void stop() {
+        synchronized (this.startStopMonitor) {
+            doStop();
+
+            // If we registered a JVM shutdown hook, we don't need it anymore now:
+            // We've already explicitly closed the context.
+            if (this.shutdownHook != null) {
+                try {
+                    Runtime.getRuntime().removeShutdownHook(this.shutdownHook);
+                } catch (final IllegalStateException ex) {
+                    // ignore - VM is already shutting down
+                }
+            }
+        }
+    }
+
+    /**
+     * Wait for nth occurrence of message to appear in docker logs within the specified timeframe.
+     *
+     * @param timeout
+     *            timeout value
+     * @param unit
+     *            timeout units
+     * @param messages
+     *            The sequence of messages to wait for
+     * @throws DockerException
+     *             if docker throws exception while tailing logs
+     * @throws InterruptedException
+     *             if thread interrupted while waiting for timeout
+     */
+    public final void waitForLog(final int timeout, final TimeUnit unit, final String... messages)
+            throws DockerException, InterruptedException {
+        final long startTime = System.currentTimeMillis();
+        final long timeoutTimeMillis = startTime + TimeUnit.MILLISECONDS.convert(timeout, unit);
+
+        int n = 0;
+        LOGGER.info("Tailing logs for \"{}\"", messages[n]);
+        final LogStream logs = client.logs(containerId, follow(), stdout(), stderr());
+        while (logs.hasNext()) {
+            if (Thread.interrupted()) {
+                // manual check for thread being terminated
+                throw new InterruptedException();
+            }
+            final String message = messages[n];
+            final String log = StandardCharsets.UTF_8.decode(logs.next().content()).toString();
+            if (log.contains(message)) {
+                LOGGER.info(
+                        "Successfully received \"{}\" after {}ms",
+                        message,
+                        System.currentTimeMillis() - startTime);
+                if (++n >= messages.length) {
+                    return;
+                }
+            }
+            if (startTime > timeoutTimeMillis) {
+                throw new IllegalStateException("Timeout waiting for log \"" + message + "\"");
+            }
+        }
+    }
+
+    /**
+     * Wait for a sequence of messages to appear in docker logs.
+     *
+     * @param messages
+     *            The sequence of messages to wait for
+     * @throws DockerException
+     *             if docker throws exception while tailing logs
+     * @throws InterruptedException
+     *             if thread interrupted while waiting for timeout
+     */
+    public final void waitForLog(final String... messages) throws DockerException, InterruptedException {
+        waitForLog(30, TimeUnit.SECONDS, messages);
+    }
+
+    /**
+     * Wait for the specified port to accept socket connection.
+     *
+     * @param portName
+     *            Docker port name, e.g. '9200/tcp'
+     */
+    public final void waitForPort(final String portName) {
+        final Binding binding = getPortBinding(portName);
+        waitForPort(binding.getHost(), binding.getPort());
+    }
+
+    /**
+     * Wait for the specified port to accept socket connection.
+     *
+     * @param host
+     *            host name
+     * @param port
+     *            port number
+     */
+    public final void waitForPort(final String host, final int port) {
+        waitForPort(host, port, 30, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Wait for the specified port to accept socket connection within a given time frame.
+     *
+     * @param host
+     *            target host name
+     * @param port
+     *            target port number
+     * @param timeout
+     *            timeout value
+     * @param unit
+     *            timeout units
+     * @throws IllegalArgumentException
+     *             if invalid arguments are passed to method
+     */
+    public final void waitForPort(final String host, final int port, final int timeout, final TimeUnit unit)
+            throws IllegalArgumentException {
+        Preconditions.checkArgument(host != null, "host must be non-null");
+        Preconditions.checkArgument(port > 0, "port must be positive integer");
+        Preconditions.checkArgument(unit != null, "unit must be non-null");
+
+        final long startTime = System.currentTimeMillis();
+        final long timeoutTime = startTime + TimeUnit.MILLISECONDS.convert(timeout, unit);
+
+        LOGGER.info("Waiting for docker container at {}:{} for {} {}", host, port, timeout, unit);
+        final SocketAddress address = new InetSocketAddress(host, port);
+        for (;;) {
+            if (isSocketAlive(address, 2000)) {
+                LOGGER.info(
+                        "Successfully connected to container at {}:{} after {}ms",
+                        host,
+                        port,
+                        System.currentTimeMillis() - startTime);
+                return;
+            }
+            try {
+                Thread.sleep(1000);
+                LOGGER.info("Waiting for container at {}:{}", host, port);
+                if (System.currentTimeMillis() > timeoutTime) {
+                    LOGGER.error("Failed to connect with container at {}:{}", host, port);
+                    throw new IllegalStateException(
+                            "Timeout waiting for socket connection to " + host + ":" + port);
+                }
+            } catch (final InterruptedException ie) {
+                throw new IllegalStateException(ie);
+            }
+        }
+    }
+
+    /**
+     * Wait for the specified port to accept socket connection within a given time frame.
+     *
+     * @param portName
+     *            docker port name, e.g. 9200/tcp
+     * @param timeout
+     *            timeout value
+     * @param unit
+     *            timeout units
+     */
+    public final void waitForPort(final String portName, final int timeout, final TimeUnit unit) {
+        final Binding binding = getPortBinding(portName);
+        waitForPort(binding.getHost(), binding.getPort(), timeout, unit);
     }
 
     private void assertStarted() {
@@ -170,70 +447,6 @@ public class Container {
         }
     }
 
-    /**
-     * Returns a new {@link ContainerConfig.Builder} based upon the given configuration.
-     *
-     * Descendant classes can override this method to customize the configuration of the Docker
-     * container beyond what is allowed by {@link DockerConfig}.
-     *
-     * @param config
-     *            docker container configuration
-     * @return a new {@link ContainerConfig.Builder}
-     */
-    protected ContainerConfig.Builder createContainerConfig(final DockerConfig config) {
-        final ContainerConfig.Builder builder = ContainerConfig.builder() //
-                .hostConfig(createHostConfig(config).build()) //
-                .image(config.getImage()) //
-                .networkDisabled(false) //
-                .exposedPorts(config.getPorts());
-        for (final ContainerConfigurer configurer : config.getContainerConfigurer()) {
-            configurer.configureContainer(builder);
-        }
-        return builder;
-    }
-
-    protected DockerClient createDockerClient() {
-        try {
-            return DefaultDockerClient.fromEnv() //
-                    .connectTimeoutMillis(5000) //
-                    .readTimeoutMillis(20000) //
-                    .build();
-        } catch (final DockerCertificateException e) {
-            throw new RuntimeException("Unable to create docker client", e);
-        }
-    }
-
-    /**
-     * Returns a new {@link HostConfig.Builder} based upon the given configuration.
-     *
-     * Descendant classes can override this method to customize the configuration of the Docker
-     * container's host beyond what is allowed by {@link DockerConfig}.
-     *
-     * @param config
-     *            docker container configuration
-     * @return a new {@link HostConfig.Builder}
-     */
-    protected HostConfig.Builder createHostConfig(final DockerConfig config) {
-        final HostConfig.Builder builder = HostConfig.builder() //
-                .portBindings(createPortBindings(config.getPorts()));
-        for (final HostConfigurer configurer : config.getHostConfigurer()) {
-            configurer.configureHost(builder);
-        }
-        return builder;
-    }
-
-    protected Map<String, List<PortBinding>> createPortBindings(final String[] exposedPorts) {
-        final Map<String, List<PortBinding>> portBindings = new HashMap<>();
-        if (exposedPorts != null) {
-            for (final String port : exposedPorts) {
-                final List<PortBinding> hostPorts = Collections
-                        .singletonList(PortBinding.randomPort("0.0.0.0"));
-                portBindings.put(port, hostPorts);
-            }
-        }
-        return portBindings;
-    }
-
     private void doStop() {
         if (this.started.get() && this.stopped.compareAndSet(false, true)) {
             LOGGER.info("Stopping {} container", config.getName());
@@ -250,62 +463,6 @@ public class Container {
                 client.close();
             }
         }
-    }
-
-    public final DockerClient getClient() {
-        return client;
-    }
-
-    public DockerConfig getConfig() {
-        return config;
-    }
-
-    public final String getContainerId() {
-        assertStarted();
-        return containerId;
-    }
-
-    public final String getHost() {
-        assertStarted();
-        return host;
-    }
-
-    public final ContainerInfo getInfo() {
-        assertStarted();
-        return info;
-    }
-
-    public final int getPort(final String portName) {
-        assertStarted();
-
-        if (jenkins) {
-            // when running inside a Jenkins container, we are a sibling to the other
-            // container, and should access it via the exposed ip
-            final Matcher matcher = PORT_PROTOCOL_PATTERN.matcher(portName);
-            if (matcher.find()) {
-                return Integer.parseInt(matcher.group(1));
-            }
-        } else {
-            // otherwise, the container has exposed the service on a unique port running on
-            // the host
-            final Map<String, List<PortBinding>> ports = info.networkSettings().ports();
-            final List<PortBinding> portBindings = ports.get(portName);
-            if (portBindings != null && !portBindings.isEmpty()) {
-                final PortBinding firstBinding = portBindings.get(0);
-                return Integer.parseInt(firstBinding.hostPort());
-            }
-        }
-
-        return -1;
-    }
-
-    /**
-     * Returns true if container has been started.
-     *
-     * @return true if container has been started.
-     */
-    public boolean isStarted() {
-        return started.get();
     }
 
     private void pullImage() throws DockerException, InterruptedException {
@@ -382,77 +539,9 @@ public class Container {
         }
     }
 
-    public void start() throws Exception {
-        synchronized (this.startStopMonitor) {
-            if (this.started.get()) {
-                final ContainerInfo inspect = client.inspectContainer(name);
-                final ContainerState state = inspect.state();
-                if (!state.running()) {
-                    throw new IllegalStateException(
-                            "Container " + name + " is not running (check exit code!): " + state);
-                }
-
-                // already running
-                return;
-            }
-
-            LOGGER.info("Starting container with {}", containerConfig);
-            this.stopped.set(false);
-            this.started.set(true);
-
-            registerShutdownHook();
-            client = createDockerClient();
-
-            boolean created = false;
-            boolean running = false;
-            if (name != null) {
-                try {
-                    final ContainerInfo existing = client.inspectContainer(name);
-                    final ContainerState state = existing.state();
-
-                    final String image = containerConfig.image();
-                    if (!image.equals(existing.config().image())) {
-                        // existing container has different image
-                        if (state != null && state.running() && state.running().booleanValue()) {
-                            stopContainerQuietly(image, existing.id());
-                        }
-                        removeContainerQuietly(existing.id());
-                    } else {
-                        created = true;
-                        running = state != null && state.running() && state.running().booleanValue();
-                        containerId = existing.id();
-                        info = existing;
-                    }
-                } catch (final DockerException e) {
-                    // we could not get information about container, fall through
-                }
-            }
-
-            if (!created) {
-                pullImage();
-                containerId = createContainer();
-            }
-            if (!running) {
-                startContainer();
-                info = client.inspectContainer(containerId);
-            }
-
-            if (jenkins) {
-                host = info.networkSettings().ipAddress();
-            } else {
-                host = client.getHost();
-            }
-
-            // notify listener than container has been started
-            for (final StartedListener listener : config.getStartedListener()) {
-                listener.onStarted(this);
-            }
-        }
-    }
-
     /**
      * Instructs Docker to start the container
-     * 
+     *
      * @throws DockerException
      *             if docker cannot start the container
      */
@@ -471,27 +560,8 @@ public class Container {
     }
 
     /**
-     * Instructs Docker to stop the container
-     */
-    public void stop() {
-        synchronized (this.startStopMonitor) {
-            doStop();
-
-            // If we registered a JVM shutdown hook, we don't need it anymore now:
-            // We've already explicitly closed the context.
-            if (this.shutdownHook != null) {
-                try {
-                    Runtime.getRuntime().removeShutdownHook(this.shutdownHook);
-                } catch (final IllegalStateException ex) {
-                    // ignore - VM is already shutting down
-                }
-            }
-        }
-    }
-
-    /**
      * Utility method to stop a container with the given image name and id/name.
-     * 
+     *
      * @param image
      *            image name
      * @param idOrName
@@ -501,7 +571,7 @@ public class Container {
         final long startTime = System.currentTimeMillis();
         try {
             LOGGER.info("Killing docker container {} with id {}", image, idOrName);
-            int secondsToWaitBeforeKilling = 10;
+            final int secondsToWaitBeforeKilling = 10;
             client.stopContainer(containerId, secondsToWaitBeforeKilling);
         } catch (DockerException | InterruptedException e) {
             // log error and ignore exception
@@ -513,109 +583,66 @@ public class Container {
     }
 
     /**
-     * Wait for nth occurrence of message to appear in docker logs within the specified timeframe.
+     * Returns a new {@link ContainerConfig.Builder} based upon the given configuration.
      *
-     * @param timeout
-     *            timeout value
-     * @param unit
-     *            timeout units
-     * @param messages
-     *            The sequence of messages to wait for
-     * @throws DockerException
-     *             if docker throws exception while tailing logs
-     * @throws InterruptedException
-     *             if thread interrupted while waiting for timeout
+     * Descendant classes can override this method to customize the configuration of the Docker
+     * container beyond what is allowed by {@link DockerConfig}.
+     *
+     * @param config
+     *            docker container configuration
+     * @return a new {@link ContainerConfig.Builder}
      */
-    public final void waitForLog(final int timeout, final TimeUnit unit, final String... messages)
-            throws DockerException, InterruptedException {
-        final long startTime = System.currentTimeMillis();
-        final long timeoutTimeMillis = startTime + TimeUnit.MILLISECONDS.convert(timeout, unit);
+    protected ContainerConfig.Builder createContainerConfig(final DockerConfig config) {
+        final ContainerConfig.Builder builder = ContainerConfig.builder() //
+                .hostConfig(createHostConfig(config).build()) //
+                .image(config.getImage()) //
+                .networkDisabled(false) //
+                .exposedPorts(config.getPorts());
+        for (final ContainerConfigurer configurer : config.getContainerConfigurer()) {
+            configurer.configureContainer(builder);
+        }
+        return builder;
+    }
 
-        int n = 0;
-        LOGGER.info("Tailing logs for \"{}\"", messages[n]);
-        final LogStream logs = client.logs(containerId, follow(), stdout(), stderr());
-        while (logs.hasNext()) {
-            if (Thread.interrupted()) {
-                // manual check for thread being terminated
-                throw new InterruptedException();
-            }
-            final String message = messages[n];
-            final String log = StandardCharsets.UTF_8.decode(logs.next().content()).toString();
-            if (log.contains(message)) {
-                LOGGER.info(
-                        "Successfully received \"{}\" after {}ms",
-                        message,
-                        System.currentTimeMillis() - startTime);
-                if (++n >= messages.length) {
-                    return;
-                }
-            }
-            if (startTime > timeoutTimeMillis) {
-                throw new IllegalStateException("Timeout waiting for log \"" + message + "\"");
-            }
+    protected DockerClient createDockerClient() {
+        try {
+            return DefaultDockerClient.fromEnv() //
+                    .connectTimeoutMillis(5000) //
+                    .readTimeoutMillis(20000) //
+                    .build();
+        } catch (final DockerCertificateException e) {
+            throw new RuntimeException("Unable to create docker client", e);
         }
     }
 
     /**
-     * Wait for a sequence of messages to appear in docker logs.
+     * Returns a new {@link HostConfig.Builder} based upon the given configuration.
      *
-     * @param messages
-     *            The sequence of messages to wait for
-     * @throws DockerException
-     *             if docker throws exception while tailing logs
-     * @throws InterruptedException
-     *             if thread interrupted while waiting for timeout
+     * Descendant classes can override this method to customize the configuration of the Docker
+     * container's host beyond what is allowed by {@link DockerConfig}.
+     *
+     * @param config
+     *            docker container configuration
+     * @return a new {@link HostConfig.Builder}
      */
-    public final void waitForLog(final String... messages) throws DockerException, InterruptedException {
-        waitForLog(30, TimeUnit.SECONDS, messages);
+    protected HostConfig.Builder createHostConfig(final DockerConfig config) {
+        final HostConfig.Builder builder = HostConfig.builder() //
+                .portBindings(createPortBindings(config.getPorts()));
+        for (final HostConfigurer configurer : config.getHostConfigurer()) {
+            configurer.configureHost(builder);
+        }
+        return builder;
     }
 
-    /**
-     * Wait for the specified port to accept socket connection.
-     *
-     * @param port
-     *            target port number
-     */
-    public final void waitForPort(final int port) {
-        waitForPort(port, 30, TimeUnit.SECONDS);
-    }
-
-    /**
-     * Wait for the specified port to accept socket connection within a given timeframe.
-     *
-     * @param port
-     *            target port number
-     * @param timeout
-     *            timeout value
-     * @param unit
-     *            timeout units
-     */
-    public final void waitForPort(final int port, final int timeout, final TimeUnit unit) {
-        final long startTime = System.currentTimeMillis();
-        final long timeoutTime = startTime + TimeUnit.MILLISECONDS.convert(timeout, unit);
-
-        LOGGER.info("Waiting for docker container at {}:{} for {} {}", host, port, timeout, unit);
-        final SocketAddress address = new InetSocketAddress(host, port);
-        for (;;) {
-            if (isSocketAlive(address, 2000)) {
-                LOGGER.info(
-                        "Successfully connected to container at {}:{} after {}ms",
-                        host,
-                        port,
-                        System.currentTimeMillis() - startTime);
-                return;
-            }
-            try {
-                Thread.sleep(1000);
-                LOGGER.info("Waiting for container at {}:{}", host, port);
-                if (System.currentTimeMillis() > timeoutTime) {
-                    LOGGER.error("Failed to connect with container at {}:{}", host, port);
-                    throw new IllegalStateException(
-                            "Timeout waiting for socket connection to " + host + ":" + port);
-                }
-            } catch (final InterruptedException ie) {
-                throw new IllegalStateException(ie);
+    protected Map<String, List<PortBinding>> createPortBindings(final String[] exposedPorts) {
+        final Map<String, List<PortBinding>> portBindings = new HashMap<>();
+        if (exposedPorts != null) {
+            for (final String port : exposedPorts) {
+                final List<PortBinding> hostPorts = Collections
+                        .singletonList(PortBinding.randomPort("0.0.0.0"));
+                portBindings.put(port, hostPorts);
             }
         }
+        return portBindings;
     }
 }
