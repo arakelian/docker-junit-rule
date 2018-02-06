@@ -6,21 +6,22 @@ A junit rule to run docker containers.
 ## Features
 
 * `DockerRule` will automatically start and stop your Docker container.
-* `DockerRule` will share your container across multiple JUnit tests, without having to start/stop the container for each test.
+* `DockerRule` will share your container across multiple JUnit tests; it will not start and stop your container 
+  for each test, allowing your test suites to run much faster.
 
 
 ## Usage
 
 Starting a Docker container as part of your unit test is as simple as including a `ClassRule` that looks like this:
 
-```
+```java
     @ClassRule
     public static RabbitMqDockerRule rabbitmq = new RabbitMqDockerRule();
 ```
 
 To configure your own rule, you'll extend from `DockerRule`:
 
-```
+```java
 public class RabbitDockerRule extends DockerRule {
     public RabbitDockerRule() {
         super(ImmutableDockerConfig.builder() //
@@ -45,13 +46,10 @@ A couple of things to note:
 
 ## Customizing Docker Container
 
-DockerRule provides two callback for customizing the Docker container, `addHostConfigurer` and `addContainerConfigurer`.
+DockerRule provides two callback for customizing the Docker container, `addHostConfigurer` and `addContainerConfigurer`.  In the 
+example below we'll use these callback to configure an Elasticsearch container.  
 
-Here's an example of how you could configure an Elastic container.  Notice how we can use `addHostConfigurer` to 
-remove ulimits, and `addContainerConfigurer` to set environment variables.
- 
-
-```
+```java
 public class ElasticDockerRule extends DockerRule {
     public ElasticDockerRule() {
         super(ImmutableDockerConfig.builder() //
@@ -72,6 +70,10 @@ public class ElasticDockerRule extends DockerRule {
                 .build());
     }
 }
+```
+
+Notice that we used `addHostConfigurer` to remove ulimits and `addContainerConfigurer` to set environment variables.
+
 
 ## Installation
 
