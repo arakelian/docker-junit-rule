@@ -15,8 +15,9 @@
  * limitations under the License.
  */
 
-package com.arakelian.docker.junit;
+package com.arakelian.docker.junit.rule;
 
+import com.arakelian.docker.junit.DockerRule;
 import com.arakelian.docker.junit.model.ImmutableDockerConfig;
 
 /**
@@ -27,9 +28,10 @@ import com.arakelian.docker.junit.model.ImmutableDockerConfig;
 public class RabbitDockerRule extends DockerRule {
     public RabbitDockerRule() {
         super(ImmutableDockerConfig.builder() //
-                .name("docker-test") //
+                .name("docker-test-rabbitmq") //
                 .image("rabbitmq:management") //
                 .ports("5672") //
+                .alwaysRemoveContainer(true) //
                 .addStartedListener(container -> {
                     container.waitForPort("5672/tcp");
                     container.waitForLog("Server startup complete");

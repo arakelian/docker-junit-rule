@@ -23,24 +23,21 @@ import java.util.concurrent.TimeUnit;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import com.arakelian.docker.junit.Container.Binding;
-import com.arakelian.docker.junit.rule.RabbitDockerRule;
+import com.arakelian.docker.junit.rule.WireMockDockerRule;
 import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.Retryer;
 import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
 
 /**
  * Tests that we can launch RabbitMQ inside Docker container as part of JUnit test.
  *
  * @author Greg Arakelian
  */
-public class RabbitIntegrationTest {
+public class WireMockIntegrationTest {
     @ClassRule
-    public static RabbitDockerRule rabbitmq = new RabbitDockerRule();
+    public static WireMockDockerRule dockerRule = new WireMockDockerRule();
 
     @Test
     public void testConnectsToDocker() throws ExecutionException, RetryException {
@@ -50,15 +47,8 @@ public class RabbitIntegrationTest {
                 .withWaitStrategy(WaitStrategies.fixedWait(5, TimeUnit.SECONDS)) //
                 .build();
 
-        // wait for RabbitMQ
+        // wait for WireMock
         retryer.call(() -> {
-            final ConnectionFactory factory = new ConnectionFactory();
-            final Container container = rabbitmq.getContainer();
-            final Binding binding = container.getPortBinding("5672/tcp");
-            factory.setHost(binding.getHost());
-            factory.setPort(binding.getPort());
-            final Connection connection = factory.newConnection();
-            connection.close();
             return null;
         });
     }
