@@ -6,7 +6,7 @@ A junit rule to run docker containers.
 ## Features
 
 * `DockerRule` will automatically start and stop your Docker container.
-* `DockerRule` will share your container across multiple JUnit tests; it will not start and stop your container 
+* `DockerRule` will share your container across multiple JUnit tests; it will not start and stop your container
   for each test, allowing your test suites to run much faster.
 
 
@@ -15,8 +15,8 @@ A junit rule to run docker containers.
 Starting a Docker container as part of your unit test is as simple as including a `ClassRule` that looks like this:
 
 ```java
-    @ClassRule
-    public static RabbitMqDockerRule rabbitmq = new RabbitMqDockerRule();
+@ClassRule
+public static RabbitMqDockerRule rabbitmq = new RabbitMqDockerRule();
 ```
 
 To configure your own rule, you'll extend from `DockerRule`:
@@ -39,15 +39,15 @@ public class RabbitDockerRule extends DockerRule {
 A couple of things to note:
 * Your custom `ClassRule` will extend from `DockerRule`
 * Your constructor will provide `DockerRule` with an immutable configuration that describes the Docker container
-  that needs to be created. 
+  that needs to be created.
 * The configuration you provide includes a user-defined callback for determining when the container has started. A few helper methods are
   provided to help you do this.
 
 
 ## Customizing Docker Container
 
-DockerRule provides two callback for customizing the Docker container, `addHostConfigurer` and `addContainerConfigurer`.  In the 
-example below we'll use these callback to configure an Elasticsearch container.  
+DockerRule provides two callback for customizing the Docker container, `addHostConfigurer` and `addContainerConfigurer`.  In the
+example below we'll use these callback to configure an Elasticsearch container.
 
 ```java
 public class ElasticDockerRule extends DockerRule {
@@ -77,7 +77,7 @@ Notice that we used `addHostConfigurer` to remove ulimits and `addContainerConfi
 
 ## Installation
 
-The library is available on Maven Central
+The library is available on [Maven Central](https://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22com.arakelian%22%20AND%20a%3A%22docker-junit-rule%22).
 
 ### Maven
 
@@ -100,7 +100,7 @@ Add the following to your `pom.xml`:
 <dependency>
     <groupId>com.arakelian</groupId>
     <artifactId>docker-junit-rule</artifactId>
-    <version>2.0.0</version>
+    <version>2.1.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -115,7 +115,7 @@ repositories {
 }
 
 dependencies {
-  testCompile 'com.arakelian:docker-junit-rule:2.0.0'
+  testCompile 'com.arakelian:docker-junit-rule:2.1.0'
 }
 ```
 

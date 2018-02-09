@@ -197,6 +197,7 @@ public class Container {
     public void start() throws Exception {
         synchronized (this.startStopMonitor) {
             if (this.started.get()) {
+                Preconditions.checkState(client != null, "client must be non-null");
                 final ContainerInfo inspect = client.inspectContainer(name);
                 final ContainerState state = inspect.state();
                 if (!state.running()) {
@@ -213,7 +214,12 @@ public class Container {
             this.started.set(true);
 
             registerShutdownHook();
-            client = createDockerClient();
+            try {
+                client = createDockerClient();
+            } catch (Exception e) {
+                stop();
+                throw e;
+            }
 
             boolean created = false;
             boolean running = false;
@@ -604,14 +610,14 @@ public class Container {
         return builder;
     }
 
-    protected DockerClient createDockerClient() {
+    protected DockerClient createDockerClient() throws DockerClientException {
         try {
             return DefaultDockerClient.fromEnv() //
                     .connectTimeoutMillis(5000) //
                     .readTimeoutMillis(20000) //
                     .build();
-        } catch (final DockerCertificateException e) {
-            throw new RuntimeException("Unable to create docker client", e);
+        } catch (final IllegalStateException | IllegalArgumentException | DockerCertificateException e) {
+            throw new DockerClientException("Unable to create docker client", e);
         }
     }
 
