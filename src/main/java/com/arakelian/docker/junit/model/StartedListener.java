@@ -21,7 +21,7 @@ import com.arakelian.docker.junit.Container;
 
 /**
  * Allows a unit test to receive event when Docker container has been started.
- * 
+ *
  * @author Greg Arakelian
  */
 @FunctionalInterface

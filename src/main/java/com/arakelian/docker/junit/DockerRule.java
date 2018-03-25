@@ -38,7 +38,7 @@ import com.google.common.collect.Maps;
 /**
  * <p>
  * JUnit rule starting a docker container before a test and killing it afterwards.
- * 
+ *
  * This rule allows a container to keep running between different unit tests to improve performance.
  * It is smart enough to shutdown the containers when all of the unit tests complete.
  * </p>
@@ -67,6 +67,9 @@ public class DockerRule implements TestRule {
 
             for (final DockerConfig config : configs.values()) {
                 final Container container = register(config);
+
+                // while this rule is executing, we don't want the container stopped
+                container.addRef();
                 try {
                     DockerRule.this.container = container;
                     container.start();
@@ -75,6 +78,9 @@ public class DockerRule implements TestRule {
                     container.stop();
                     throw new RuntimeException("Unable to start docker container: " + config, e);
                 } finally {
+                    // release lock on container
+                    container.releaseRef();
+
                     DockerRule.this.container = null;
                     if (!config.isAllowRunningBetweenUnitTests()) {
                         container.stop();
@@ -103,6 +109,38 @@ public class DockerRule implements TestRule {
     }
 
     /**
+     * Starts a docker container with the given configuration.
+     *
+     * This method is particularly useful when you want to start a container dynamically.
+     *
+     * @param config
+     *            container configuration
+     * @param stopOthers
+     *            true to stop other running containers; useful to limit the amount of memory that a
+     *            series of unit tests will consume.
+     * @return a {@link Container} representing the started container.
+     * @throws Exception
+     *             if the container cannot be started
+     */
+    public static Container start(final DockerConfig config, final boolean stopOthers) throws Exception {
+        Preconditions.checkArgument(config != null, "config must be non-null");
+
+        if (stopOthers) {
+            getRegisteredContainers().stream() //
+                    .filter(container -> {
+                        return container.isStarted() //
+                                && container.getRefCount() == 0 //
+                                && !StringUtils.equals(config.getName(), container.getConfig().getName());
+                    }) //
+                    .forEach(container -> container.stop());
+        }
+
+        final Container container = register(config);
+        container.start();
+        return container;
+    }
+
+    /**
      * Returns a {@link Container} for the given {@link DockerConfig}. If the container has not been
      * created yet, this method will create it; otherwise, it will return the previously created
      * container. There is a single <code>Container</code> associated with any given
@@ -128,35 +166,6 @@ public class DockerRule implements TestRule {
         }
     }
 
-    /**
-     * Starts a docker container with the given configuration.
-     *
-     * @param config
-     *            container configuration
-     * @param stopOthers
-     *            true to stop other running containers; useful to limit the amount of memory that a
-     *            series of unit tests will consume.
-     * @return a {@link Container} representing the started container.
-     * @throws Exception
-     *             if the container cannot be started
-     */
-    public static Container start(final DockerConfig config, final boolean stopOthers) throws Exception {
-        Preconditions.checkArgument(config != null, "config must be non-null");
-
-        if (stopOthers) {
-            getRegisteredContainers().stream() //
-                    .filter(container -> {
-                        return container.isStarted()
-                                && !StringUtils.equals(config.getName(), container.getConfig().getName());
-                    }) //
-                    .forEach(container -> container.stop());
-        }
-
-        final Container container = register(config);
-        container.start();
-        return container;
-    }
-
     /** Mapping of configurations **/
     private final Map<String, DockerConfig> configs = Maps.newLinkedHashMap();
 
@@ -172,12 +181,6 @@ public class DockerRule implements TestRule {
         }
     }
 
-    protected void addDockerConfig(final DockerConfig config) {
-        final String name = config.getName();
-        Preconditions.checkState(!this.configs.containsKey(name), "Container %s already defined");
-        this.configs.put(name, config);
-    }
-
     @Override
     public final Statement apply(final Statement base, final Description description) {
         return new StatementWithDockerRule(base);
@@ -190,5 +193,11 @@ public class DockerRule implements TestRule {
      */
     public final Container getContainer() {
         return container;
+    }
+
+    protected void addDockerConfig(final DockerConfig config) {
+        final String name = config.getName();
+        Preconditions.checkState(!this.configs.containsKey(name), "Container %s already defined");
+        this.configs.put(name, config);
     }
 }

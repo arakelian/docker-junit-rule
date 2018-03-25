@@ -22,7 +22,7 @@ import com.spotify.docker.client.messages.HostConfig.Ulimit;
 
 /**
  * Utility class for creating <code>HostConfigurer</code>s.
- * 
+ *
  * @author Greg Arakelian
  */
 public class HostConfigurers {

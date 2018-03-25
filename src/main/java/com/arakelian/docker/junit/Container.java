@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.immutables.value.Value;
 import org.slf4j.Logger;
@@ -128,6 +129,12 @@ public class Container {
     private final AtomicBoolean stopped = new AtomicBoolean();
 
     /**
+     * When reference count is non-zero, we cannot close this container because it is required as
+     * part of a unit test.
+     **/
+    private final AtomicInteger refCount = new AtomicInteger();
+
+    /**
      * Construct a container.
      *
      * @param config
@@ -137,6 +144,10 @@ public class Container {
         this.name = config.getName();
         this.config = config;
         this.containerConfig = createContainerConfig(config).build();
+    }
+
+    public final int addRef() {
+        return refCount.incrementAndGet();
     }
 
     public final DockerClient getClient() {
@@ -185,6 +196,10 @@ public class Container {
                 .build();
     }
 
+    public final int getRefCount() {
+        return refCount.get();
+    }
+
     /**
      * Returns true if container has been started.
      *
@@ -192,6 +207,10 @@ public class Container {
      */
     public boolean isStarted() {
         return started.get();
+    }
+
+    public final int releaseRef() {
+        return refCount.decrementAndGet();
     }
 
     public void start() throws Exception {
@@ -216,7 +235,7 @@ public class Container {
             registerShutdownHook();
             try {
                 client = createDockerClient();
-            } catch (Exception e) {
+            } catch (final Exception e) {
                 stop();
                 throw e;
             }

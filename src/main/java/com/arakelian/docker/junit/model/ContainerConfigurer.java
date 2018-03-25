@@ -21,7 +21,7 @@ import com.spotify.docker.client.messages.ContainerConfig;
 
 /**
  * Allows a unit test to configure a Docker container with great specificity.
- * 
+ *
  * @author Greg Arakelian
  */
 @FunctionalInterface
