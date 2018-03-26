@@ -105,7 +105,12 @@ public class DockerRule implements TestRule {
      * @return a list of registered containers.
      */
     public static List<Container> getRegisteredContainers() {
-        return ImmutableList.copyOf(CONTAINERS.values());
+        CONTAINERS_LOCK.lock();
+        try {
+            return ImmutableList.copyOf(CONTAINERS.values());
+        } finally {
+            CONTAINERS_LOCK.unlock();
+        }
     }
 
     /**
@@ -195,9 +200,19 @@ public class DockerRule implements TestRule {
         return container;
     }
 
-    protected void addDockerConfig(final DockerConfig config) {
+    protected final void addDockerConfig(final DockerConfig config) {
         final String name = config.getName();
-        Preconditions.checkState(!this.configs.containsKey(name), "Container %s already defined");
+        Preconditions.checkState(!hasConfig(name), "Container %s already defined");
         this.configs.put(name, config);
+    }
+
+    public final DockerConfig getConfig(final String name) {
+        final DockerConfig config = this.configs.get(name);
+        Preconditions.checkArgument(config != null, "Container %s is not defined");
+        return config;
+    }
+
+    public final boolean hasConfig(final String name) {
+        return this.configs.containsKey(name);
     }
 }

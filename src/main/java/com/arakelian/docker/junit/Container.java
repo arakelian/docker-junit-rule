@@ -44,6 +44,7 @@ import com.arakelian.docker.junit.model.DockerConfig;
 import com.arakelian.docker.junit.model.HostConfigurer;
 import com.arakelian.docker.junit.model.StartedListener;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.DockerClient.RemoveContainerParam;
@@ -119,6 +120,11 @@ public class Container {
     /** Reference to the JVM shutdown hook, if registered */
     private Thread shutdownHook;
 
+    /**
+     * Arbitrary data that can be associated with this container.
+     */
+    private Map<String, Object> context = Maps.newLinkedHashMap();
+
     /** Synchronization monitor for the "refresh" and "destroy" */
     private final Object startStopMonitor = new Object();
 
@@ -156,6 +162,18 @@ public class Container {
 
     public DockerConfig getConfig() {
         return config;
+    }
+
+    public <T> T getData(String name, Class<T> clazz) {
+        final Object value = context.get(name);
+        if (clazz.isInstance(value)) {
+            return clazz.cast(value);
+        }
+        throw new IllegalStateException(name + " must be non-null");
+    }
+
+    public void setData(String name, Object value) {
+        context.put(name, value);
     }
 
     public final String getContainerId() {
@@ -228,7 +246,7 @@ public class Container {
                 return;
             }
 
-            LOGGER.info("Starting container with {}", containerConfig);
+            LOGGER.info("Starting container {} with {}", containerConfig.image(), containerConfig);
             this.stopped.set(false);
             this.started.set(true);
 

@@ -68,12 +68,26 @@ public interface DockerConfig {
     @Value.Auxiliary
     public String[] getPorts();
 
+    /**
+     * Returns a list of listeners which are called when the container is started.
+     * 
+     * @return list of listeners which are called when the container is started
+     */
     @Value.Default
     @Value.Auxiliary
     public default List<StartedListener> getStartedListener() {
         return ImmutableList.of();
     }
 
+    /**
+     * Returns true if container is allowed to continue running between separate JUnit tests.
+     * 
+     * Note that all containers are automatically stopped when the JVM is exited (e.g. when Gradle
+     * tests complete, or when JUnit tests complete inside Eclipse). This is a performance
+     * enhancement that allows individual unit tests to complete much faster.
+     * 
+     * @return true if container is allowed to continue running between separate JUnit tests
+     */
     @Value.Default
     @Value.Auxiliary
     public default boolean isAllowRunningBetweenUnitTests() {
@@ -92,6 +106,11 @@ public interface DockerConfig {
         return false;
     }
 
+    /**
+     * Returns true if container should always be removed between executions.
+     * 
+     * @return true if container should always be removed between executions.
+     */
     @Value.Default
     @Value.Auxiliary
     public default boolean isAlwaysRemoveContainer() {
