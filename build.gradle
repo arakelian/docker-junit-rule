@@ -14,19 +14,19 @@ plugins {
     id 'idea'
 
     // keep dependencies up-to-date!
-    id 'com.github.ben-manes.versions' version '0.17.0'
+    id 'com.github.ben-manes.versions' version '0.19.0'
 
     // useful for creating immutable java beans
     id 'org.inferred.processors' version '1.2.15'
 
     // to ensure clean code
-    id "net.ltgt.errorprone" version "0.0.13"
+    id "net.ltgt.errorprone" version "0.0.14"
 
     // for deployment to Maven Central
     id "io.codearte.nexus-staging" version "0.11.0"
 
     // for building fat jar
-    id "com.github.johnrengelman.shadow" version "2.0.2"
+    id "com.github.johnrengelman.shadow" version "2.0.4"
 
     // useful utilities
     id "com.arakelian.multitool" version "1.4.2"
@@ -35,7 +35,7 @@ plugins {
 group   = 'com.arakelian'
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '4.5.1'
+    gradleVersion = '4.8'
 }
 
 multitool {
@@ -77,13 +77,13 @@ multitool {
 }
 
 dependencies {
-    processor 'org.immutables:value:2.5.6'
+    processor 'org.immutables:value:2.6.1'
 
     // we expose a JUnit rule so obviously JUnit is a runtime requirement
     compile 'junit:junit:4.12'
 
     // we shadow Guava due to frequent downstream compatibility issues
-    shadow 'com.google.guava:guava:24.0-jre'
+    shadow 'com.google.guava:guava:25.1-jre'
 
     // shadow because we use very few classes from here and don't want to create
     // unnecessary downstream dependencies
@@ -96,7 +96,7 @@ dependencies {
 
     // easy-to-use library for communicating with Docker host; we shadow the library
     // to avoid downstream compatibility issues
-    shadow ('com.spotify:docker-client:8.9.2:shaded') {
+    shadow ('com.spotify:docker-client:8.11.6:shaded') {
         transitive = false
     }
 

@@ -100,7 +100,7 @@ Add the following to your `pom.xml`:
 <dependency>
     <groupId>com.arakelian</groupId>
     <artifactId>docker-junit-rule</artifactId>
-    <version>2.1.4</version>
+    <version>2.2.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -115,7 +115,7 @@ repositories {
 }
 
 dependencies {
-  testCompile 'com.arakelian:docker-junit-rule:2.1.4'
+  testCompile 'com.arakelian:docker-junit-rule:2.2.0'
 }
 ```
 
