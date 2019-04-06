@@ -116,6 +116,6 @@ dependencies {
     compile     'org.slf4j:slf4j-api:1.7.25'
 
     // for unit testing
-    testCompile 'com.github.rholder:guava-retrying:2.0.0'
+    testCompile 'com.arakelian:retry:3.2.0'
     testCompile 'com.rabbitmq:amqp-client:5.7.0'
 }

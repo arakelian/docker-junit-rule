@@ -24,11 +24,11 @@ import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.arakelian.docker.junit.rule.WireMockDockerRule;
-import com.github.rholder.retry.RetryException;
-import com.github.rholder.retry.Retryer;
-import com.github.rholder.retry.RetryerBuilder;
-import com.github.rholder.retry.StopStrategies;
-import com.github.rholder.retry.WaitStrategies;
+import com.arakelian.retry.RetryException;
+import com.arakelian.retry.Retryer;
+import com.arakelian.retry.RetryerBuilder;
+import com.arakelian.retry.StopStrategies;
+import com.arakelian.retry.WaitStrategies;
 
 /**
  * Tests that we can launch RabbitMQ inside Docker container as part of JUnit test.

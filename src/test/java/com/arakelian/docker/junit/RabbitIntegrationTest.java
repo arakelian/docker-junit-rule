@@ -25,11 +25,11 @@ import org.junit.Test;
 
 import com.arakelian.docker.junit.Container.Binding;
 import com.arakelian.docker.junit.rule.RabbitDockerRule;
-import com.github.rholder.retry.RetryException;
-import com.github.rholder.retry.Retryer;
-import com.github.rholder.retry.RetryerBuilder;
-import com.github.rholder.retry.StopStrategies;
-import com.github.rholder.retry.WaitStrategies;
+import com.arakelian.retry.RetryException;
+import com.arakelian.retry.Retryer;
+import com.arakelian.retry.RetryerBuilder;
+import com.arakelian.retry.StopStrategies;
+import com.arakelian.retry.WaitStrategies;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
