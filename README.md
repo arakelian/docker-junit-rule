@@ -2,13 +2,16 @@
 
 A junit rule to run docker containers.
 
-
 ## Features
 
 * `DockerRule` will automatically start and stop your Docker container.
 * `DockerRule` will share your container across multiple JUnit tests; it will not start and stop your container
   for each test, allowing your test suites to run much faster.
 
+## Requirements
+
+* Version 2.x is compatible with Java 8+
+* Version 3.x is compatible with Java 11+
 
 ## Usage
 
@@ -100,7 +103,7 @@ Add the following to your `pom.xml`:
 <dependency>
     <groupId>com.arakelian</groupId>
     <artifactId>docker-junit-rule</artifactId>
-    <version>2.3.0</version>
+    <version>3.0.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -115,7 +118,7 @@ repositories {
 }
 
 dependencies {
-  testCompile 'com.arakelian:docker-junit-rule:2.3.0'
+  testCompile 'com.arakelian:docker-junit-rule:3.0.0'
 }
 ```
 
