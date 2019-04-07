@@ -29,7 +29,7 @@ plugins {
     id "com.github.johnrengelman.shadow" version "5.0.0"
 
     // useful utilities
-    id "com.arakelian.multitool" version "2.1.0"
+    id "com.arakelian.multitool" version "2.3.0"
 }
 
 group   = 'com.arakelian'
@@ -63,17 +63,9 @@ multitool {
         keep includedescriptorclasses:true, 'class org.aopalliance.** { *; }'
         keep includedescriptorclasses:true, 'class org.jvnet.** { *; }'
 
-        // dont change original class files
-        dontoptimize()
-
         dontwarn 'com.spotify.docker.**'
         dontwarn 'jersey.repackaged.**'
         dontwarn 'sun.misc.**'
-        
-        // no warnings
-        //dontnote()
-
-        optimizationpasses 1
     }
 }
 
@@ -116,6 +108,6 @@ dependencies {
     compile     'org.slf4j:slf4j-api:1.7.25'
 
     // for unit testing
-    testCompile 'com.arakelian:retry:3.2.0'
+    testCompile 'com.arakelian:retry:3.3.0'
     testCompile 'com.rabbitmq:amqp-client:5.7.0'
 }
