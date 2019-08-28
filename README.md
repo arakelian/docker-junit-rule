@@ -10,8 +10,7 @@ A junit rule to run docker containers.
 
 ## Requirements
 
-* Version 2.x is compatible with Java 8+
-* Version 3.x is compatible with Java 11+
+* Compatible with Java 8+
 
 ## Usage
 
@@ -103,7 +102,7 @@ Add the following to your `pom.xml`:
 <dependency>
     <groupId>com.arakelian</groupId>
     <artifactId>docker-junit-rule</artifactId>
-    <version>3.2.0</version>
+    <version>3.3.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -118,7 +117,7 @@ repositories {
 }
 
 dependencies {
-  testCompile 'com.arakelian:docker-junit-rule:3.2.0'
+  testCompile 'com.arakelian:docker-junit-rule:3.3.0'
 }
 ```
 
