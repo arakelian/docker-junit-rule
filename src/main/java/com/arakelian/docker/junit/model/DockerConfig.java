@@ -87,15 +87,14 @@ public abstract class DockerConfig {
     }
 
     /**
-     * Returns true if container is allowed to continue running between separate JUnit tests.
+     * Returns true if container is allowed to continue running between separate JUnit tests. See
+     * {@link #getDockerRuleKey()}.
      *
      * Note that all containers are automatically stopped when the JVM is exited (e.g. when Gradle
      * tests complete, or when JUnit tests complete inside Eclipse). This is a performance
      * enhancement that allows individual unit tests to complete much faster.
      *
      * @return true if container is allowed to continue running between separate JUnit tests
-     *
-     * @see {@link #getDockerRuleKey()}
      */
     @Value.Default
     @Value.Auxiliary
