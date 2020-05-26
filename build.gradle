@@ -89,8 +89,12 @@ dependencies {
 
     // easy-to-use library for communicating with Docker host; we shadow the library
     // to avoid downstream compatibility issues
-    shadow 'com.github.docker-java:docker-java-api:3.2.1'
-    shadow 'com.github.docker-java:docker-java-core:3.2.1'
+    shadow ('com.github.docker-java:docker-java-api:3.2.1') {
+        exclude module: 'slf4j-api'
+    }
+    shadow ('com.github.docker-java:docker-java-core:3.2.1') {
+        exclude module: 'slf4j-api'
+    }
     shadow 'com.github.docker-java:docker-java-transport-okhttp:3.2.1'
 
     // logging
