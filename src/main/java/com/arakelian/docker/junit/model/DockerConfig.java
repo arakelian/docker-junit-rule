@@ -46,6 +46,17 @@ public abstract class DockerConfig {
         return ImmutableList.of();
     }
 
+    /**
+     * Returns a key that can be used to share instances of this container between unit tests.
+     *
+     * @return a key that can be used to share instances of this container between unit tests.
+     */
+    @Value.Default
+    @Value.Auxiliary
+    public String getDockerRuleKey() {
+        return getImage();
+    }
+
     @Value.Default
     @Value.Auxiliary
     public List<HostConfigConfigurer> getHostConfigConfigurer() {
@@ -58,8 +69,6 @@ public abstract class DockerConfig {
      * @return name of the docker image
      */
     public abstract String getImage();
-
-    public abstract List<String> getLogDetection();
 
     /**
      * Returns a list of listeners which are called when the container is started.
@@ -85,6 +94,8 @@ public abstract class DockerConfig {
      * enhancement that allows individual unit tests to complete much faster.
      *
      * @return true if container is allowed to continue running between separate JUnit tests
+     *
+     * @see {@link #getDockerRuleKey()}
      */
     @Value.Default
     @Value.Auxiliary

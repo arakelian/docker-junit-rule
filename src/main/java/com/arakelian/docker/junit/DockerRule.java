@@ -93,7 +93,7 @@ public class DockerRule implements TestRule {
     private static final Logger LOGGER = LoggerFactory.getLogger(DockerRule.class);
 
     /** Cache of docker contexts **/
-    private static final Map<DockerConfig, Container> CONTAINERS = new ConcurrentHashMap<>();
+    private static final Map<String, Container> CONTAINERS = new ConcurrentHashMap<>();
 
     /** Synchronization lock **/
     private static final transient Lock CONTAINERS_LOCK = new ReentrantLock();
@@ -125,10 +125,11 @@ public class DockerRule implements TestRule {
     protected static Container register(final DockerConfig config) {
         CONTAINERS_LOCK.lock();
         try {
-            Container container = CONTAINERS.get(config);
+            String key = config.getDockerRuleKey();
+            Container container = CONTAINERS.get(key);
             if (container == null) {
                 container = new Container(config);
-                CONTAINERS.put(config, container);
+                CONTAINERS.put(key, container);
             }
             LOGGER.info("Registered docker configuration: {}", config);
             return container;
