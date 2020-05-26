@@ -38,6 +38,12 @@ wrapper {
     gradleVersion = '6.4.1'
 }
 
+shadowJar {
+    dependencies {
+        exclude(dependency('org.slf4j:slf4j-api:.*'))
+    }
+}
+
 multitool {
     relocates += [
         'com.github.dockerjava'       : 'repackaged.com.arakelian.docker.junit.com.github.dockerjava',
@@ -89,21 +95,17 @@ dependencies {
 
     // easy-to-use library for communicating with Docker host; we shadow the library
     // to avoid downstream compatibility issues
-    shadow ('com.github.docker-java:docker-java-api:3.2.1') {
-        exclude module: 'slf4j-api'
-    }
-    shadow ('com.github.docker-java:docker-java-core:3.2.1') {
-        exclude module: 'slf4j-api'
-    }
+    shadow 'com.github.docker-java:docker-java-api:3.2.1'
+    shadow 'com.github.docker-java:docker-java-core:3.2.1'
     shadow 'com.github.docker-java:docker-java-transport-okhttp:3.2.1'
 
     // logging
     testCompile 'org.apache.logging.log4j:log4j-api:2.13.3'
     testCompile 'org.apache.logging.log4j:log4j-core:2.13.3'
     testCompile 'org.apache.logging.log4j:log4j-slf4j-impl:2.13.3'
-    testCompile 'org.slf4j:jcl-over-slf4j:1.7.29'
-    testCompile 'org.slf4j:jul-to-slf4j:1.7.29'
-    compile     'org.slf4j:slf4j-api:1.7.29'
+    testCompile 'org.slf4j:jcl-over-slf4j:1.7.30'
+    testCompile 'org.slf4j:jul-to-slf4j:1.7.30'
+    compile     'org.slf4j:slf4j-api:1.7.30'
 
     // for unit testing
     testCompile 'com.arakelian:retry:3.8.0'
