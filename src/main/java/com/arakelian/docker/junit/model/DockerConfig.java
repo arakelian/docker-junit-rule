@@ -19,6 +19,8 @@ package com.arakelian.docker.junit.model;
 
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.immutables.value.Value;
 
 import com.google.common.collect.ImmutableList;
@@ -32,16 +34,21 @@ import com.google.common.collect.ImmutableList;
  * @author Greg Arakelian
  */
 @Value.Immutable(copy = false)
-public interface DockerConfig {
+public abstract class DockerConfig {
+    @Override
+    public boolean equals(@Nullable final Object another) {
+        return this == another;
+    }
+
     @Value.Default
     @Value.Auxiliary
-    public default List<ContainerConfigurer> getContainerConfigurer() {
+    public List<CreateContainerConfigurer> getCreateContainerConfigurer() {
         return ImmutableList.of();
     }
 
     @Value.Default
     @Value.Auxiliary
-    public default List<HostConfigurer> getHostConfigurer() {
+    public List<HostConfigConfigurer> getHostConfigConfigurer() {
         return ImmutableList.of();
     }
 
@@ -50,47 +57,38 @@ public interface DockerConfig {
      *
      * @return name of the docker image
      */
-    @Value.Auxiliary
-    public String getImage();
+    public abstract String getImage();
 
-    /**
-     * Returns the container name (as would be displayed in "NAMES" column of "docker ps" command).
-     *
-     * @return the container name.
-     */
-    public String getName();
-
-    /**
-     * Returns the list of ports that this container will make public.
-     *
-     * @return list of ports that this container will make public.
-     */
-    @Value.Auxiliary
-    public String[] getPorts();
+    public abstract List<String> getLogDetection();
 
     /**
      * Returns a list of listeners which are called when the container is started.
-     * 
+     *
      * @return list of listeners which are called when the container is started
      */
     @Value.Default
     @Value.Auxiliary
-    public default List<StartedListener> getStartedListener() {
+    public List<StartedListener> getStartedListener() {
         return ImmutableList.of();
+    }
+
+    @Override
+    public int hashCode() {
+        return System.identityHashCode(this);
     }
 
     /**
      * Returns true if container is allowed to continue running between separate JUnit tests.
-     * 
+     *
      * Note that all containers are automatically stopped when the JVM is exited (e.g. when Gradle
      * tests complete, or when JUnit tests complete inside Eclipse). This is a performance
      * enhancement that allows individual unit tests to complete much faster.
-     * 
+     *
      * @return true if container is allowed to continue running between separate JUnit tests
      */
     @Value.Default
     @Value.Auxiliary
-    public default boolean isAllowRunningBetweenUnitTests() {
+    public boolean isAllowRunningBetweenUnitTests() {
         return true;
     }
 
@@ -102,18 +100,7 @@ public interface DockerConfig {
      */
     @Value.Default
     @Value.Auxiliary
-    public default boolean isAlwaysPullLatestImage() {
-        return false;
-    }
-
-    /**
-     * Returns true if container should always be removed between executions.
-     * 
-     * @return true if container should always be removed between executions.
-     */
-    @Value.Default
-    @Value.Auxiliary
-    public default boolean isAlwaysRemoveContainer() {
+    public boolean isAlwaysPullLatestImage() {
         return false;
     }
 }

@@ -19,6 +19,9 @@ package com.arakelian.docker.junit.rule;
 
 import com.arakelian.docker.junit.DockerRule;
 import com.arakelian.docker.junit.model.ImmutableDockerConfig;
+import com.github.dockerjava.api.model.ExposedPort;
+import com.github.dockerjava.api.model.PortBinding;
+import com.github.dockerjava.api.model.Ports.Binding;
 
 /**
  * Test rule that starts Rabbit MQ and waits until unit test can connect to it.
@@ -26,14 +29,20 @@ import com.arakelian.docker.junit.model.ImmutableDockerConfig;
  * @author Greg Arakelian
  */
 public class RabbitDockerRule extends DockerRule {
+    public static final ExposedPort RABBITMQ_PORT = ExposedPort.tcp(5672);
+
     public RabbitDockerRule() {
         super(ImmutableDockerConfig.builder() //
-                .name("docker-test-rabbitmq") //
                 .image("rabbitmq:management") //
-                .ports("5672") //
-                .alwaysRemoveContainer(true) //
+                .addCreateContainerConfigurer(create -> {
+                    create.withExposedPorts(RABBITMQ_PORT);
+                }) //
+                .addHostConfigConfigurer(hostConfig -> {
+                    hostConfig.withAutoRemove(true);
+                    hostConfig.withPortBindings(new PortBinding(Binding.empty(), RABBITMQ_PORT));
+                }) //
                 .addStartedListener(container -> {
-                    container.waitForPort("5672/tcp");
+                    container.waitForPort(RABBITMQ_PORT);
                     container.waitForLog("Server startup complete");
                 }).build());
     }

@@ -17,7 +17,7 @@
 
 package com.arakelian.docker.junit.model;
 
-import com.spotify.docker.client.messages.ContainerConfig;
+import com.github.dockerjava.api.command.CreateContainerCmd;
 
 /**
  * Allows a unit test to configure a Docker container with great specificity.
@@ -25,6 +25,6 @@ import com.spotify.docker.client.messages.ContainerConfig;
  * @author Greg Arakelian
  */
 @FunctionalInterface
-public interface ContainerConfigurer {
-    public void configureContainer(final ContainerConfig.Builder builder);
+public interface CreateContainerConfigurer {
+    public void configure(final CreateContainerCmd create);
 }

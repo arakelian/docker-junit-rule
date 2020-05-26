@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-@Value.Style(get = { "is*", "get*" })
+@Value.Style(get = { "is*", "get*" }, depluralize = true)
 package com.arakelian.docker.junit;
 
 import org.immutables.value.Value;

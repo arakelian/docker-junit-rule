@@ -23,7 +23,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.apache.commons.lang3.StringUtils;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -33,7 +32,7 @@ import org.slf4j.LoggerFactory;
 import com.arakelian.docker.junit.model.DockerConfig;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
+import com.google.common.collect.Lists;
 
 /**
  * <p>
@@ -65,7 +64,7 @@ public class DockerRule implements TestRule {
                 return;
             }
 
-            for (final DockerConfig config : configs.values()) {
+            for (final DockerConfig config : configs) {
                 final Container container = register(config);
 
                 // while this rule is executing, we don't want the container stopped
@@ -94,7 +93,7 @@ public class DockerRule implements TestRule {
     private static final Logger LOGGER = LoggerFactory.getLogger(DockerRule.class);
 
     /** Cache of docker contexts **/
-    private static final Map<String, Container> CONTAINERS = new ConcurrentHashMap<>();
+    private static final Map<DockerConfig, Container> CONTAINERS = new ConcurrentHashMap<>();
 
     /** Synchronization lock **/
     private static final transient Lock CONTAINERS_LOCK = new ReentrantLock();
@@ -108,6 +107,31 @@ public class DockerRule implements TestRule {
         CONTAINERS_LOCK.lock();
         try {
             return ImmutableList.copyOf(CONTAINERS.values());
+        } finally {
+            CONTAINERS_LOCK.unlock();
+        }
+    }
+
+    /**
+     * Returns a {@link Container} for the given {@link DockerConfig}. If the container has not been
+     * created yet, this method will create it; otherwise, it will return the previously created
+     * container. There is a single <code>Container</code> associated with any given
+     * <code>DockerConfig</code>.
+     *
+     * @param config
+     *            container configuration.
+     * @return a {@link Container} for the given {@link DockerConfig}.
+     */
+    protected static Container register(final DockerConfig config) {
+        CONTAINERS_LOCK.lock();
+        try {
+            Container container = CONTAINERS.get(config);
+            if (container == null) {
+                container = new Container(config);
+                CONTAINERS.put(config, container);
+            }
+            LOGGER.info("Registered docker configuration: {}", config);
+            return container;
         } finally {
             CONTAINERS_LOCK.unlock();
         }
@@ -135,7 +159,7 @@ public class DockerRule implements TestRule {
                     .filter(container -> {
                         return container.isStarted() //
                                 && container.getRefCount() == 0 //
-                                && !StringUtils.equals(config.getName(), container.getConfig().getName());
+                                && config.equals(container.getConfig());
                     }) //
                     .forEach(container -> container.stop());
         }
@@ -145,34 +169,8 @@ public class DockerRule implements TestRule {
         return container;
     }
 
-    /**
-     * Returns a {@link Container} for the given {@link DockerConfig}. If the container has not been
-     * created yet, this method will create it; otherwise, it will return the previously created
-     * container. There is a single <code>Container</code> associated with any given
-     * <code>DockerConfig</code>.
-     *
-     * @param config
-     *            container configuration.
-     * @return a {@link Container} for the given {@link DockerConfig}.
-     */
-    protected static Container register(final DockerConfig config) {
-        CONTAINERS_LOCK.lock();
-        try {
-            final String name = config.getName();
-            Container container = CONTAINERS.get(name);
-            if (container == null) {
-                container = new Container(config);
-                CONTAINERS.put(name, container);
-            }
-            LOGGER.info("Registered docker configuration: {}", name);
-            return container;
-        } finally {
-            CONTAINERS_LOCK.unlock();
-        }
-    }
-
     /** Mapping of configurations **/
-    private final Map<String, DockerConfig> configs = Maps.newLinkedHashMap();
+    private final List<DockerConfig> configs = Lists.newArrayList();
 
     /** Docker container **/
     private Container container;
@@ -184,6 +182,11 @@ public class DockerRule implements TestRule {
         for (final DockerConfig config : configs) {
             addDockerConfig(config);
         }
+    }
+
+    protected final void addDockerConfig(final DockerConfig config) {
+        Preconditions.checkState(!hasConfig(config), "Container %s already defined");
+        this.configs.add(config);
     }
 
     @Override
@@ -200,19 +203,7 @@ public class DockerRule implements TestRule {
         return container;
     }
 
-    protected final void addDockerConfig(final DockerConfig config) {
-        final String name = config.getName();
-        Preconditions.checkState(!hasConfig(name), "Container %s already defined");
-        this.configs.put(name, config);
-    }
-
-    public final DockerConfig getConfig(final String name) {
-        final DockerConfig config = this.configs.get(name);
-        Preconditions.checkArgument(config != null, "Container %s is not defined");
-        return config;
-    }
-
-    public final boolean hasConfig(final String name) {
-        return this.configs.containsKey(name);
+    public final boolean hasConfig(final DockerConfig config) {
+        return this.configs.contains(config);
     }
 }

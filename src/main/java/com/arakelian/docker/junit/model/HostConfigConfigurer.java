@@ -17,23 +17,9 @@
 
 package com.arakelian.docker.junit.model;
 
-import com.google.common.collect.Lists;
-import com.spotify.docker.client.messages.HostConfig.Ulimit;
+import com.github.dockerjava.api.model.HostConfig;
 
-/**
- * Utility class for creating <code>HostConfigurer</code>s.
- *
- * @author Greg Arakelian
- */
-public class HostConfigurers {
-    public static final HostConfigurer noUlimits() {
-        return (builder) -> {
-            final Ulimit ulimit = Ulimit.builder() //
-                    .name("nofile") //
-                    .soft(65536L) //
-                    .hard(65536L) //
-                    .build();
-            builder.ulimits(Lists.newArrayList(ulimit));
-        };
-    }
+@FunctionalInterface
+public interface HostConfigConfigurer {
+    public void configure(final HostConfig config);
 }

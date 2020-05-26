@@ -23,13 +23,13 @@ import java.util.concurrent.TimeUnit;
 import org.junit.ClassRule;
 import org.junit.Test;
 
-import com.arakelian.docker.junit.Container.Binding;
 import com.arakelian.docker.junit.rule.RabbitDockerRule;
 import com.arakelian.retry.RetryException;
 import com.arakelian.retry.Retryer;
 import com.arakelian.retry.RetryerBuilder;
 import com.arakelian.retry.StopStrategies;
 import com.arakelian.retry.WaitStrategies;
+import com.github.dockerjava.api.model.Ports.Binding;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
@@ -54,9 +54,9 @@ public class RabbitIntegrationTest {
         retryer.call(() -> {
             final ConnectionFactory factory = new ConnectionFactory();
             final Container container = rabbitmq.getContainer();
-            final Binding binding = container.getPortBinding("5672/tcp");
-            factory.setHost(binding.getHost());
-            factory.setPort(binding.getPort());
+            final Binding binding = container.getBinding(RabbitDockerRule.RABBITMQ_PORT);
+            factory.setHost(binding.getHostIp());
+            factory.setPort(Integer.parseInt(binding.getHostPortSpec()));
             final Connection connection = factory.newConnection();
             connection.close();
             return null;

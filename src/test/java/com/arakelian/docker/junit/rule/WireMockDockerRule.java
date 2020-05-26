@@ -19,19 +19,27 @@ package com.arakelian.docker.junit.rule;
 
 import com.arakelian.docker.junit.DockerRule;
 import com.arakelian.docker.junit.model.ImmutableDockerConfig;
+import com.github.dockerjava.api.model.ExposedPort;
+import com.github.dockerjava.api.model.PortBinding;
+import com.github.dockerjava.api.model.Ports.Binding;
 
 public class WireMockDockerRule extends DockerRule {
-    private static final String HTTP_PORT = "8080/tcp";
-    private static final String HTTPS_PORT = "8081/tcp";
+    private static final ExposedPort HTTP_PORT = ExposedPort.tcp(8080);
+    private static final ExposedPort HTTPS_PORT = ExposedPort.tcp(8081);
 
     public WireMockDockerRule() {
         super(ImmutableDockerConfig.builder() //
-                .name("docker-test-wiremock") //
                 .image("rodolpheche/wiremock:2.14.0-alpine") //
-                .ports(HTTP_PORT, HTTPS_PORT) //
-                .addContainerConfigurer(
-                        c -> c.cmd("-verbose", "--print-all-network-traffic", "--https-port=8081")) //
-                .alwaysRemoveContainer(true) //
+                .addCreateContainerConfigurer(create -> {
+                    create.withExposedPorts(HTTP_PORT, ExposedPort.tcp(8081));
+                    create.withCmd("-verbose", "--print-all-network-traffic", "--https-port=8081");
+                }) //
+                .addHostConfigConfigurer(hostConfig -> {
+                    hostConfig.withAutoRemove(true);
+                    hostConfig.withPortBindings(
+                            new PortBinding(Binding.empty(), HTTP_PORT),
+                            new PortBinding(Binding.empty(), HTTPS_PORT));
+                }) //
                 .addStartedListener(container -> {
                     container.waitForPort(HTTP_PORT);
                     container.waitForPort(HTTPS_PORT);

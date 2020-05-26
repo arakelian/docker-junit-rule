@@ -15,8 +15,8 @@
                         <AppenderRef ref="C" />
                 </Root>
                 <Logger name="com.arakelian" level="debug" includeLocation="true" />
-                <Logger name="org.apache.http" level="debug" includeLocation="true" />
-                <Logger name="org.apache.http.wire" level="debug" includeLocation="true" />
+                <Logger name="org.apache.http" level="info" includeLocation="true" />
+                <Logger name="org.apache.http.wire" level="info" includeLocation="true" />
                 <Logger name="org.apache.http.impl.conn.CPool" level="warn" includeLocation="true" />
         </Loggers>
 </Configuration>

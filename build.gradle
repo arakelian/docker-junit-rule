@@ -35,45 +35,40 @@ plugins {
 group   = 'com.arakelian'
 
 wrapper { 
-    gradleVersion = '6.2.2' 
+    gradleVersion = '6.4.1'
 }
 
 multitool {
     relocates += [
+        'com.github.dockerjava'       : 'repackaged.com.arakelian.docker.junit.com.github.dockerjava',
+        'io.netty'                    : 'repackaged.com.arakelian.docker.junit.io.netty',
         'com.google.common'           : 'repackaged.com.arakelian.docker.junit.${prefix}com.google.common',
-        'com.google.errorprone'       : 'repackaged.com.arakelian.docker.junit.${prefix}com.google.errorprone',
-        'com.google.j2objc'           : 'repackaged.com.arakelian.docker.junit.${prefix}com.google.j2objc',
-        'com.google.thirdparty'       : 'repackaged.com.arakelian.docker.junit.${prefix}com.google.thirdparty',
         'javax.annotation'            : 'repackaged.com.arakelian.docker.junit.${prefix}javax.annotation',
         'org.apache.commons'          : 'repackaged.com.arakelian.docker.junit.${prefix}org.apache.commons',
+        'com.fasterxml.jackson'       : 'repackaged.com.arakelian.docker.junit.${prefix}com.fasterxml.jackson',
+        'org.bouncycastle'            : 'repackaged.com.arakelian.docker.junit.${prefix}org.bouncycastle',
     ]
 
     configureMinify = true
 
     proguardConfiguration {
         keep includedescriptorclasses:true, 'class com.arakelian.** { *; }'
-        keep includedescriptorclasses:true, 'class com.kenai.** { *; }'
-        keep includedescriptorclasses:true, 'class com.spotify.docker.client.* { *; }'
-        keep includedescriptorclasses:true, 'class com.spotify.docker.client.messages.* { *; }'
-        keep includedescriptorclasses:true, 'class com.spotify.docker.client.shaded.** { *; }'
-        keep includedescriptorclasses:true, 'class jersey.repackaged.** { *; }'
-        keep includedescriptorclasses:true, 'class jni.** { *; }'
-        keep includedescriptorclasses:true, 'class jnr.** { *; }'
-        keep includedescriptorclasses:true, 'class mozilla.** { *; }'
-        keep includedescriptorclasses:true, 'class org.aopalliance.** { *; }'
-        keep includedescriptorclasses:true, 'class org.jvnet.** { *; }'
+        keep includedescriptorclasses:true, 'class com.github.dockerjava.** { *; }'
+        keep includedescriptorclasses:true, 'class io.netty.** { *; }'
 
-        dontwarn 'com.spotify.docker.**'
-        dontwarn 'jersey.repackaged.**'
+        dontwarn 'repackaged.com.arakelian.docker.junit.**'
+        dontwarn 'org.slf4j.**'
+        dontwarn 'com.github.dockerjava.**'
+        dontwarn 'org.apache.logging.log4j.**'
         dontwarn 'sun.misc.**'
     }
 }
 
 dependencies {
-    processor 'org.immutables:value:2.8.3'
+    processor 'org.immutables:value:2.8.8'
     
     // annotations
-    compile 'org.immutables:value-annotations:2.8.3'
+    compile 'org.immutables:value-annotations:2.8.8'
 
     // configure errorprone version
     errorprone 'com.google.errorprone:error_prone_core:2.3.4'
@@ -82,32 +77,27 @@ dependencies {
     compile 'junit:junit:4.13'
 
     // we shadow Guava due to frequent downstream compatibility issues
-    shadow 'com.google.guava:guava:28.2-jre'
+    shadow 'com.google.guava:guava:29.0-jre'
 
     // shadow because we use very few classes from here and don't want to create
     // unnecessary downstream dependencies
-    shadow  'org.apache.commons:commons-lang3:3.9'
-
-    // used dynamically by shaded docker-client http
-    shadow ('org.slf4j:jcl-over-slf4j:1.7.29') {
-        transitive = false
-    }
+    shadow 'org.apache.commons:commons-lang3:3.10'
 
     // easy-to-use library for communicating with Docker host; we shadow the library
     // to avoid downstream compatibility issues
-    shadow ('com.spotify:docker-client:8.14.5:shaded') {
-        transitive = false
-    }
+    shadow 'com.github.docker-java:docker-java-api:3.2.1'
+    shadow 'com.github.docker-java:docker-java-core:3.2.1'
+    shadow 'com.github.docker-java:docker-java-transport-netty:3.2.1'
 
     // logging
-    testCompile 'org.apache.logging.log4j:log4j-api:2.13.1'
-    testCompile 'org.apache.logging.log4j:log4j-core:2.13.1'
-    testCompile 'org.apache.logging.log4j:log4j-slf4j-impl:2.13.1'
+    testCompile 'org.apache.logging.log4j:log4j-api:2.13.3'
+    testCompile 'org.apache.logging.log4j:log4j-core:2.13.3'
+    testCompile 'org.apache.logging.log4j:log4j-slf4j-impl:2.13.3'
     testCompile 'org.slf4j:jcl-over-slf4j:1.7.29'
     testCompile 'org.slf4j:jul-to-slf4j:1.7.29'
     compile     'org.slf4j:slf4j-api:1.7.29'
 
     // for unit testing
-    testCompile 'com.arakelian:retry:3.7.0'
+    testCompile 'com.arakelian:retry:3.8.0'
     testCompile 'com.rabbitmq:amqp-client:5.8.0'
 }
