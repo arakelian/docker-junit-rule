@@ -53,8 +53,8 @@ multitool {
 
     proguardConfiguration {
         keep includedescriptorclasses:true, 'class com.arakelian.** { *; }'
-        keep includedescriptorclasses:true, 'class com.github.dockerjava.** { *; }'
-        keep includedescriptorclasses:true, 'class io.netty.** { *; }'
+        keep includedescriptorclasses:true, 'class repackaged.com.arakelian.docker.junit.com.github.dockerjava.** { *; }'
+        keep includedescriptorclasses:true, 'class repackaged.com.arakelian.docker.junit.io.netty.** { *; }'
 
         dontwarn 'repackaged.com.arakelian.docker.junit.**'
         dontwarn 'org.slf4j.**'
