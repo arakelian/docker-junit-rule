@@ -54,7 +54,7 @@ import com.github.dockerjava.api.model.NetworkSettings;
 import com.github.dockerjava.api.model.Ports;
 import com.github.dockerjava.api.model.Ports.Binding;
 import com.github.dockerjava.core.DockerClientImpl;
-import com.github.dockerjava.netty.NettyDockerCmdExecFactory;
+import com.github.dockerjava.okhttp.OkHttpDockerCmdExecFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -293,7 +293,7 @@ public class Container {
     protected DockerClient createDockerClient() throws DockerClientException {
         try {
             final DockerClient dockerClient = DockerClientImpl.getInstance() //
-                    .withDockerCmdExecFactory(new NettyDockerCmdExecFactory());
+                    .withDockerCmdExecFactory(new OkHttpDockerCmdExecFactory());
             return dockerClient;
         } catch (final IllegalStateException | IllegalArgumentException e) {
             throw new DockerClientException("Unable to create docker client", e);

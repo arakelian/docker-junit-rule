@@ -41,7 +41,9 @@ wrapper {
 multitool {
     relocates += [
         'com.github.dockerjava'       : 'repackaged.com.arakelian.docker.junit.com.github.dockerjava',
-        'io.netty'                    : 'repackaged.com.arakelian.docker.junit.io.netty',
+        'okhttp3'                     : 'repackaged.com.arakelian.docker.junit.okhttp3',
+        'okio'                        : 'repackaged.com.arakelian.docker.junit.okio',
+        'com.sun.jna'                 : 'repackaged.com.arakelian.docker.junit.com.sun.jna',
         'com.google.common'           : 'repackaged.com.arakelian.docker.junit.${prefix}com.google.common',
         'javax.annotation'            : 'repackaged.com.arakelian.docker.junit.${prefix}javax.annotation',
         'org.apache.commons'          : 'repackaged.com.arakelian.docker.junit.${prefix}org.apache.commons',
@@ -54,7 +56,9 @@ multitool {
     proguardConfiguration {
         keep includedescriptorclasses:true, 'class com.arakelian.** { *; }'
         keep includedescriptorclasses:true, 'class repackaged.com.arakelian.docker.junit.com.github.dockerjava.** { *; }'
-        keep includedescriptorclasses:true, 'class repackaged.com.arakelian.docker.junit.io.netty.** { *; }'
+        keep includedescriptorclasses:true, 'class repackaged.com.arakelian.docker.junit.okhttp3.** { *; }'
+        keep includedescriptorclasses:true, 'class repackaged.com.arakelian.docker.junit.okio.** { *; }'
+        keep includedescriptorclasses:true, 'class repackaged.com.arakelian.docker.junit.com.sun.jna.** { *; }'
 
         dontwarn 'repackaged.com.arakelian.docker.junit.**'
         dontwarn 'org.slf4j.**'
@@ -87,7 +91,7 @@ dependencies {
     // to avoid downstream compatibility issues
     shadow 'com.github.docker-java:docker-java-api:3.2.1'
     shadow 'com.github.docker-java:docker-java-core:3.2.1'
-    shadow 'com.github.docker-java:docker-java-transport-netty:3.2.1'
+    shadow 'com.github.docker-java:docker-java-transport-okhttp:3.2.1'
 
     // logging
     testCompile 'org.apache.logging.log4j:log4j-api:2.13.3'
