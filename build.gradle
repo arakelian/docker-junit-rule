@@ -43,7 +43,6 @@ multitool {
         'com.github.dockerjava'       : 'repackaged.com.arakelian.docker.junit.com.github.dockerjava',
         'okhttp3'                     : 'repackaged.com.arakelian.docker.junit.okhttp3',
         'okio'                        : 'repackaged.com.arakelian.docker.junit.okio',
-        'com.sun.jna'                 : 'repackaged.com.arakelian.docker.junit.com.sun.jna',
         'com.google.common'           : 'repackaged.com.arakelian.docker.junit.${prefix}com.google.common',
         'javax.annotation'            : 'repackaged.com.arakelian.docker.junit.${prefix}javax.annotation',
         'org.apache.commons'          : 'repackaged.com.arakelian.docker.junit.${prefix}org.apache.commons',
@@ -58,12 +57,13 @@ multitool {
         keep includedescriptorclasses:true, 'class repackaged.com.arakelian.docker.junit.com.github.dockerjava.** { *; }'
         keep includedescriptorclasses:true, 'class repackaged.com.arakelian.docker.junit.okhttp3.** { *; }'
         keep includedescriptorclasses:true, 'class repackaged.com.arakelian.docker.junit.okio.** { *; }'
-        keep includedescriptorclasses:true, 'class repackaged.com.arakelian.docker.junit.com.sun.jna.** { *; }'
+        keep includedescriptorclasses:true, 'class com.sun.jna.** { *; }'
 
         dontwarn 'repackaged.com.arakelian.docker.junit.**'
         dontwarn 'org.slf4j.**'
         dontwarn 'com.github.dockerjava.**'
         dontwarn 'org.apache.logging.log4j.**'
+        dontwarn 'com.sun.jna.**'
         dontwarn 'sun.misc.**'
     }
 }
