@@ -23,6 +23,8 @@ import javax.annotation.Nullable;
 
 import org.immutables.value.Value;
 
+import com.github.dockerjava.core.DefaultDockerClientConfig;
+import com.github.dockerjava.core.DockerClientConfig;
 import com.google.common.collect.ImmutableList;
 
 /**
@@ -69,6 +71,12 @@ public abstract class DockerConfig {
      * @return name of the docker image
      */
     public abstract String getImage();
+
+    @Value.Default
+    @Value.Auxiliary
+    public DockerClientConfig getDockerClientConfig() {
+        return DefaultDockerClientConfig.createDefaultConfigBuilder().build();
+    }
 
     /**
      * Returns a list of listeners which are called when the container is started.

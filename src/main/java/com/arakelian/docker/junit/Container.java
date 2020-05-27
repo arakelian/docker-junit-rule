@@ -292,7 +292,8 @@ public class Container {
 
     protected DockerClient createDockerClient() throws DockerClientException {
         try {
-            final DockerClient dockerClient = DockerClientImpl.getInstance() //
+            final DockerClient dockerClient = DockerClientImpl //
+                    .getInstance(config.getDockerClientConfig()) //
                     .withDockerCmdExecFactory(new OkHttpDockerCmdExecFactory());
             return dockerClient;
         } catch (final IllegalStateException | IllegalArgumentException e) {
