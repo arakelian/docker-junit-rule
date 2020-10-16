@@ -29,7 +29,7 @@ plugins {
     id "com.github.johnrengelman.shadow" version "5.2.0"
 
     // useful utilities
-    id "com.arakelian.multitool" version "3.0.3"
+    id "com.arakelian.multitool" version "3.2.0"
 }
 
 group   = 'com.arakelian'
@@ -85,7 +85,6 @@ dependencies {
 
     // we expose a JUnit rule so obviously JUnit is a runtime requirement
     provided 'junit:junit:4.13.1'
-    provided 'org.junit.jupiter:junit-jupiter:5.7.0'
 
     // we shadow Guava due to frequent downstream compatibility issues
     shadow 'com.google.guava:guava:29.0-jre'
