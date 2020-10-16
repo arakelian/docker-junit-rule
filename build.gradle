@@ -14,28 +14,28 @@ plugins {
     id 'idea'
 
     // keep dependencies up-to-date!
-    id 'com.github.ben-manes.versions' version '0.28.0'
+    id 'com.github.ben-manes.versions' version '0.33.0'
 
     // useful for creating immutable java beans
     id 'org.inferred.processors' version '3.3.0'
 
     // to ensure clean code
-    id "net.ltgt.errorprone" version "0.7.1"
+    id "net.ltgt.errorprone" version "1.2.1"
 
     // for deployment to Maven Central
-    id "io.codearte.nexus-staging" version "0.21.2"
+    id "io.codearte.nexus-staging" version "0.22.0"
 
     // for building fat jar
     id "com.github.johnrengelman.shadow" version "5.2.0"
 
     // useful utilities
-    id "com.arakelian.multitool" version "2.4.0"
+    id "com.arakelian.multitool" version "3.0.3"
 }
 
 group   = 'com.arakelian'
 
 wrapper { 
-    gradleVersion = '6.4.1'
+    gradleVersion = '6.6.1'
 }
 
 shadowJar {
@@ -84,20 +84,21 @@ dependencies {
     errorprone 'com.google.errorprone:error_prone_core:2.3.4'
 
     // we expose a JUnit rule so obviously JUnit is a runtime requirement
-    compile 'junit:junit:4.13'
+    provided 'junit:junit:4.13.1'
+    provided 'org.junit.jupiter:junit-jupiter:5.7.0'
 
     // we shadow Guava due to frequent downstream compatibility issues
     shadow 'com.google.guava:guava:29.0-jre'
 
     // shadow because we use very few classes from here and don't want to create
     // unnecessary downstream dependencies
-    shadow 'org.apache.commons:commons-lang3:3.10'
+    shadow 'org.apache.commons:commons-lang3:3.11'
 
     // easy-to-use library for communicating with Docker host; we shadow the library
     // to avoid downstream compatibility issues
-    shadow 'com.github.docker-java:docker-java-api:3.2.1'
-    shadow 'com.github.docker-java:docker-java-core:3.2.1'
-    shadow 'com.github.docker-java:docker-java-transport-okhttp:3.2.1'
+    shadow 'com.github.docker-java:docker-java-api:3.2.5'
+    shadow 'com.github.docker-java:docker-java-core:3.2.5'
+    shadow 'com.github.docker-java:docker-java-transport-okhttp:3.2.5'
 
     // logging
     testCompile 'org.apache.logging.log4j:log4j-api:2.13.3'
@@ -108,6 +109,6 @@ dependencies {
     compile     'org.slf4j:slf4j-api:1.7.30'
 
     // for unit testing
-    testCompile 'com.arakelian:retry:3.8.0'
+    testCompile 'com.arakelian:retry:3.9.0'
     testCompile 'com.rabbitmq:amqp-client:5.8.0'
 }
