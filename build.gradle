@@ -81,7 +81,7 @@ dependencies {
     compile 'org.immutables:value-annotations:2.8.8'
 
     // configure errorprone version
-    errorprone 'com.google.errorprone:error_prone_core:2.3.4'
+    errorprone 'com.google.errorprone:error_prone_core:2.5.1'
 
     // we expose a JUnit rule so obviously JUnit is a runtime requirement
     provided 'junit:junit:4.13.1'
