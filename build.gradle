@@ -87,7 +87,7 @@ dependencies {
     provided 'junit:junit:4.13.1'
 
     // we shadow Guava due to frequent downstream compatibility issues
-    shadow 'com.google.guava:guava:29.0-jre'
+    shadow 'com.google.guava:guava:33.0.0-jre'
 
     // shadow because we use very few classes from here and don't want to create
     // unnecessary downstream dependencies
